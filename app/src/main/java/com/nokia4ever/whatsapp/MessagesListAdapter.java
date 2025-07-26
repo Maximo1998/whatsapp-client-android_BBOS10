@@ -5,7 +5,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 
@@ -19,12 +22,14 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
     private Context context;
     private int resource;
     private WhatsAppUser whatsAppUser;
+    private String serverUrl;
 
-    public MessagesListAdapter(Context context, int resource, ArrayList<Message> objects, WhatsAppUser whatsAppUser) {
+    public MessagesListAdapter(Context context, int resource, ArrayList<Message> objects, WhatsAppUser whatsAppUser, String serverUrl) {
         super(context, resource, objects);
         this.context = context;
         this.resource = resource;
         this.whatsAppUser = whatsAppUser;
+        this.serverUrl = serverUrl;
     }
 
     @Override
@@ -47,20 +52,44 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
 
         TextView senderMessageText = (TextView) view.findViewById(R.id.sender_message_text);
         TextView receiverMessageText = (TextView) view.findViewById(R.id.receiver_message_text);
+        ImageView senderMessageImage = (ImageView) view.findViewById(R.id.sender_message_image);
+        ImageView receiverMessageImage = (ImageView) view.findViewById(R.id.receiver_message_image);
 
-        senderMessageText.setVisibility(View.INVISIBLE);
-        receiverMessageText.setVisibility(View.INVISIBLE);
+
+        senderMessageText.setVisibility(View.GONE);
+        receiverMessageText.setVisibility(View.GONE);
+        senderMessageImage.setVisibility(View.GONE);
+        receiverMessageImage.setVisibility(View.GONE);
 
         // check if the current message is sent by the sender (i.e. the logged in user)
-        if(sender.equals(whatsAppUser.getUser())){
-            senderMessageText.setVisibility(View.VISIBLE);
-            senderMessageText.setBackgroundResource(R.drawable.sender_messages);
-            senderMessageText.setText(message + "\n" + createdAt);
+        if(chatType.equals("chat")){
+            if(sender.equals(whatsAppUser.getUser()) || sender.equalsIgnoreCase("Me")){
+                senderMessageText.setVisibility(View.VISIBLE);
+                senderMessageText.setBackgroundResource(R.drawable.sender_messages);
+                senderMessageText.setText(message + "\n" + createdAt);
+            }
+            else {
+                receiverMessageText.setVisibility(View.VISIBLE);
+                receiverMessageText.setBackgroundResource(R.drawable.receiver_messages);
+                receiverMessageText.setText(message + "\n" + createdAt);
+            }
         }
-        else {
-            receiverMessageText.setVisibility(View.VISIBLE);
-            receiverMessageText.setBackgroundResource(R.drawable.receiver_messages);
-            receiverMessageText.setText(message + "\n" + createdAt);
+        else if(chatType.equals("image")){
+            if(sender.equals(whatsAppUser.getUser()) || sender.equalsIgnoreCase("Me")){
+                senderMessageImage.setVisibility(View.VISIBLE);
+
+
+                Picasso.with(context)  //Here, this is context.
+                        .load(serverUrl + "/api/mediafile/" + _id + ".jpg")  //Url of the image to load.
+                        .into(senderMessageImage);
+
+            }
+            else {
+                receiverMessageImage.setVisibility(View.VISIBLE);
+                Picasso.with(context)  //Here, this is context.
+                        .load(serverUrl + "/api/mediafile/" + _id + ".jpg")  //Url of the image to load.
+                        .into(receiverMessageImage);
+            }
         }
 
         return view;

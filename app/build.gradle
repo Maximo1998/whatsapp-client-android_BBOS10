@@ -7,8 +7,8 @@ android {
         applicationId "com.nokia4ever.whatsapp"
         minSdkVersion 18
         targetSdkVersion 26
-        versionCode 2
-        versionName "1.1"
+        versionCode 3
+        versionName "1.2"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -25,14 +25,19 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
 
-
-
+    //compile 'com.android.support.constraint:constraint-layout:1.0.0-alpha7'
     compile 'com.android.support:appcompat-v7:26.+'
     compile 'com.android.support:design:26.+'
-    compile 'com.android.support.constraint:constraint-layout:1.0.0-alpha7'
     compile 'com.android.support:support-v4:26.+'
     compile 'com.android.volley:volley:1.2.0'
     compile 'com.google.code.gson:gson:2.4'
     compile 'de.hdodenhof:circleimageview:3.1.0'
+    compile 'com.android.support.constraint:constraint-layout:+'
+    compile 'com.github.hardillb:MultiPartVolley:0.0.4'
+    compile 'com.squareup.picasso:picasso:2.5.2'
+
+    //https://github.com/CanHub/Android-Image-Cropper
+    //https://github.com/ArthurHub/Android-Image-Cropper
+    //compile 'com.theartofdev.edmodo:android-image-cropper:2.7.+'
     testCompile 'junit:junit:4.12'
 }

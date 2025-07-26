@@ -3,6 +3,8 @@
     package="com.nokia4ever.whatsapp">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
     <application
         android:allowBackup="true"
@@ -21,7 +23,8 @@
         </activity>
         <activity android:name=".RegisterActivity" />
         <activity android:name=".SettingsActivity" />
-        <activity android:name=".ChatActivity"></activity>
+        <activity android:name=".ChatActivity" />
+        <activity android:name=".ImageUploadActivity"></activity>
     </application>
 
 </manifest>

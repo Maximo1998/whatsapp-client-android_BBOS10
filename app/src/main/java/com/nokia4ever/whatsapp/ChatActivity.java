@@ -1,6 +1,12 @@
 package com.nokia4ever.whatsapp;
 
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Handler;
+import android.provider.MediaStore;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -12,6 +18,7 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -23,12 +30,22 @@ import com.google.gson.Gson;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import uk.me.hardill.volley.multipart.MultipartRequest;
 
 public class ChatActivity extends AppCompatActivity {
 
     private static final String TAG = "ChatActivity";
+
+    private static final int CAMERA_REQUEST = 1888;
+    private static final int GALLERY_REQUEST = 1889;
 
     private Toolbar mToolbar;
     private ImageButton btnSendMessage, btnSendFiles;
@@ -44,6 +61,7 @@ public class ChatActivity extends AppCompatActivity {
     private Boolean isTimerEnabled=true;
     private String serverUrl;
     private WhatsAppUser whatsAppUser;
+    private String lastMessageId = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +89,41 @@ public class ChatActivity extends AppCompatActivity {
         btnSendFiles.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(ChatActivity.this, "Feature not implemented yet.", Toast.LENGTH_SHORT).show();
+                /*
+                Intent intent = new Intent(ChatActivity.this, ImageUploadActivity.class);
+                intent.putExtra("ServerUrl", serverUrl);
+                intent.putExtra("WhatsAppUser", whatsAppUser);
+                intent.putExtra("Contact", selectedContact);
+                startActivity(intent);
+                */
+                CharSequence options[] = new CharSequence[]{
+                        "Gallery",
+                        "Camera"
+                };
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(ChatActivity.this);
+                builder.setTitle("Make your selection");
+
+                builder.setItems(options, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        switch (i){
+                            case 0:
+                                Intent intent = new Intent();
+                                intent.setAction(Intent.ACTION_GET_CONTENT);
+                                intent.setType("image/*");
+                                startActivityForResult(Intent.createChooser(intent,"Select Image"),GALLERY_REQUEST);
+                                break;
+
+                            case 1:
+                                Intent intent2 = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                                startActivityForResult(intent2, CAMERA_REQUEST);
+                                break;
+
+                        };
+                    };
+                });
+                builder.show();
             }
         });
 
@@ -82,6 +134,71 @@ public class ChatActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         progressDialog.show();
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(requestCode == GALLERY_REQUEST || requestCode == CAMERA_REQUEST) {
+            if (resultCode == RESULT_OK) {
+                try {
+                    Bitmap photo = null;
+
+                    if(requestCode == GALLERY_REQUEST){
+                        final Uri imageUri = data.getData();
+                        final InputStream imageStream = getContentResolver().openInputStream(imageUri);
+                        photo = BitmapFactory.decodeStream(imageStream);
+                    }
+                    else if(requestCode == CAMERA_REQUEST){
+                        photo = (Bitmap) data.getExtras().get("data");
+                    }
+
+
+
+                    progressDialog.show();
+                    RequestQueue requestQueue = Volley.newRequestQueue(ChatActivity.this);
+                    Map<String, String> headers = new HashMap<String, String>();
+                    String url = serverUrl + "/api/upload";
+                    MultipartRequest request = new MultipartRequest(url, headers,
+                            new Response.Listener<NetworkResponse>() {
+                                @Override
+                                public void onResponse(NetworkResponse response) {
+                                    progressDialog.dismiss();
+                                    Toast.makeText(ChatActivity.this, "Upload successful", Toast.LENGTH_SHORT).show();
+                                }
+                            },
+                            new Response.ErrorListener() {
+                                @Override
+                                public void onErrorResponse(VolleyError error) {
+                                    progressDialog.dismiss();
+                                    Toast.makeText(ChatActivity.this, error.toString(), Toast.LENGTH_SHORT).show();
+                                }
+                            });
+
+                    request.addPart(new MultipartRequest.FormPart("sender",whatsAppUser.getUser()));
+                    request.addPart(new MultipartRequest.FormPart("receiver",selectedContact.getId()));
+                    request.addPart(new MultipartRequest.FilePart("media", "image/jpeg", "image.jpg", getByteImage(photo)));
+
+                    requestQueue.add(request);
+
+                } catch (FileNotFoundException e) {
+                    progressDialog.dismiss();
+                    e.printStackTrace();
+                    Toast.makeText(ChatActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+                }
+
+            } else {
+                Toast.makeText(ChatActivity.this, "You haven't picked an image", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+    }
+
+    private byte[] getByteImage(Bitmap bm) {
+        ByteArrayOutputStream ba = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.JPEG, 100, ba);
+        byte[] imageData = ba.toByteArray();
+        return imageData;
     }
 
     private void initializeFields() {
@@ -209,11 +326,28 @@ public class ChatActivity extends AppCompatActivity {
                                 messagesResponse = gson.fromJson(response.toString(), MessageResponse.class);
                                 //Toast.makeText(getContext(), chatsResponse.getChats().get(0).getMessage(), Toast.LENGTH_SHORT).show();
                                 ArrayList<Message> messagesList = messagesResponse.getMessages();
-                                Collections.reverse(messagesList);
-                                adapter =
-                                        new MessagesListAdapter(getApplicationContext(), R.layout.custom_messages_layout, messagesList, whatsAppUser);
 
-                                mListView.setAdapter(adapter);
+
+                                if(messagesList.size()>0){
+                                    Message message = messagesList.get(0);
+                                    if(!lastMessageId.equals(message.getId())){
+
+                                        if(!lastMessageId.equals("")){
+                                            //playSound();    // new message received
+                                            //chatsList.setTitle("New msg received");
+                                        }
+
+                                        lastMessageId = message.getId();
+
+                                        Collections.reverse(messagesList);
+                                        adapter =
+                                                new MessagesListAdapter(getApplicationContext(), R.layout.custom_messages_layout, messagesList, whatsAppUser, serverUrl);
+
+                                        mListView.setAdapter(adapter);
+                                    }
+                                }
+
+
 
                             } catch (Exception ex) {
                                 Log.e(TAG, ex.toString(), ex);

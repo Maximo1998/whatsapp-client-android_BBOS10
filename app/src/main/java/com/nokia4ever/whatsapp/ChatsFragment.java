@@ -1,10 +1,18 @@
 package com.nokia4ever.whatsapp;
 
 
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
+import android.media.MediaPlayer;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -30,6 +38,7 @@ import org.json.JSONObject;
  */
 public class ChatsFragment extends Fragment {
     private static final String TAG = "ChatsFragment";
+    private final static String default_notification_channel_id = "default";
 
     private View mGroupFragmentView;
     private ListView mListView;
@@ -40,6 +49,7 @@ public class ChatsFragment extends Fragment {
     private Boolean isTimerEnabled=true;
     private String serverUrl;
     private WhatsAppUser whatsAppUser;
+    private String lastChatId = "";
 
     public ChatsFragment() {
         // Required empty public constructor
@@ -104,6 +114,31 @@ public class ChatsFragment extends Fragment {
         progressDialog = builder.create();
     }
 
+    private void playNotificationSound(){
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext())
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle("WhatsApp")
+                .setContentText("New message received");
+
+        builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getContext());
+        notificationManager.notify(0, builder.build());
+
+
+        /*
+        try {
+            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            Ringtone r = RingtoneManager.getRingtone(getContext(), notification);
+            r.play();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        */
+
+
+    }
+
     private void retrieveAndDisplayChats() {
         try {
 
@@ -131,10 +166,24 @@ public class ChatsFragment extends Fragment {
                                 chatsResponse = gson.fromJson(response.toString(), ChatsResponse.class);
                                 //Toast.makeText(getContext(), chatsResponse.getChats().get(0).getMessage(), Toast.LENGTH_SHORT).show();
 
-                                adapter =
-                                        new ChatsListAdapter(getContext(), R.layout.custom_chats_layout, chatsResponse.getChats());
+                                if(chatsResponse.getChats().size()>0){
+                                    Message chat = chatsResponse.getChats().get(0);
+                                    if(!lastChatId.equals(chat.getId())){
 
-                                mListView.setAdapter(adapter);
+                                        if(!lastChatId.equals("")){
+                                            playNotificationSound();    // new message received
+                                            //chatsList.setTitle("New msg received");
+                                        }
+
+                                        lastChatId = chat.getId();
+
+                                        adapter =
+                                                new ChatsListAdapter(getContext(), R.layout.custom_chats_layout, chatsResponse.getChats());
+
+                                        mListView.setAdapter(adapter);
+                                    }
+                                }
+
 
                             } catch (Exception ex) {
                                 Log.e(TAG, ex.toString(), ex);
