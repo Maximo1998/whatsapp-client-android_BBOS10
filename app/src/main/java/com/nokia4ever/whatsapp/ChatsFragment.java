@@ -50,6 +50,7 @@ public class ChatsFragment extends Fragment {
     private String serverUrl;
     private WhatsAppUser whatsAppUser;
     private String lastChatId = "";
+    private Contact selectedContact;
 
     public ChatsFragment() {
         // Required empty public constructor
@@ -73,10 +74,10 @@ public class ChatsFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
                 Message selectedChat = (Message) adapterView.getItemAtPosition(position);
-                Contact contact = new Contact(selectedChat.getSender(), selectedChat.getSenderName());
+                selectedContact = new Contact(selectedChat.getSender(), selectedChat.getSenderName());
 
                 Intent intent = new Intent(getContext(), ChatActivity.class);
-                intent.putExtra("Contact", contact);
+                intent.putExtra("Contact", selectedContact);
                 intent.putExtra("ServerUrl", serverUrl);
                 intent.putExtra("WhatsAppUser", whatsAppUser);
 
@@ -90,6 +91,7 @@ public class ChatsFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
+        selectedContact = new Contact("","");
     }
 
     private void timer(){
@@ -105,7 +107,7 @@ public class ChatsFragment extends Fragment {
     }
 
     private void initializeFields() {
-        mListView = (ListView) mGroupFragmentView.findViewById(R.id.list_view);
+        mListView = mGroupFragmentView.findViewById(R.id.list_view);
 
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
@@ -115,7 +117,7 @@ public class ChatsFragment extends Fragment {
     }
 
     private void playNotificationSound(){
-
+        /*
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext())
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle("WhatsApp")
@@ -124,9 +126,9 @@ public class ChatsFragment extends Fragment {
         builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getContext());
         notificationManager.notify(0, builder.build());
+        */
 
 
-        /*
         try {
             Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
             Ringtone r = RingtoneManager.getRingtone(getContext(), notification);
@@ -134,7 +136,7 @@ public class ChatsFragment extends Fragment {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        */
+
 
 
     }
@@ -170,7 +172,7 @@ public class ChatsFragment extends Fragment {
                                     Message chat = chatsResponse.getChats().get(0);
                                     if(!lastChatId.equals(chat.getId())){
 
-                                        if(!lastChatId.equals("")){
+                                        if(!lastChatId.equals("") && !selectedContact.getId().equals(chat.getSender())){
                                             playNotificationSound();    // new message received
                                             //chatsList.setTitle("New msg received");
                                         }

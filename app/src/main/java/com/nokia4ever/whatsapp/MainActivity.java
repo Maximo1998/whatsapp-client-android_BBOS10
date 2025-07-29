@@ -25,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
         mToolbar = (Toolbar) findViewById(R.id.main_page_toolbar);
         setSupportActionBar(mToolbar);
-        getSupportActionBar().setTitle("BB10 WhatsApp 1.1");
+        getSupportActionBar().setTitle("BB10 WhatsApp 1.2");
 
         mViewPager = (ViewPager) findViewById(R.id.main_tabs_pager);
         mTabsAccessorAdapter = new TabsAccessorAdapter(getSupportFragmentManager());

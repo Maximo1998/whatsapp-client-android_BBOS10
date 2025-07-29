@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -75,6 +76,20 @@ public class ChatActivity extends AppCompatActivity {
 
         initializeFields();
 
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                Message selectedMessage = (Message) adapterView.getItemAtPosition(position);
+
+                Intent intent = new Intent(ChatActivity.this, ImageViewActivity.class);
+                intent.putExtra("Message", selectedMessage);
+                intent.putExtra("ServerUrl", serverUrl);
+                intent.putExtra("WhatsAppUser", whatsAppUser);
+
+                startActivity(intent);
+            }
+        });
+
         btnSendMessage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -120,8 +135,8 @@ public class ChatActivity extends AppCompatActivity {
                                 startActivityForResult(intent2, CAMERA_REQUEST);
                                 break;
 
-                        };
-                    };
+                        }
+                    }
                 });
                 builder.show();
             }
@@ -133,7 +148,7 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        progressDialog.show();
+        //progressDialog.show();
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -157,7 +172,7 @@ public class ChatActivity extends AppCompatActivity {
 
                     progressDialog.show();
                     RequestQueue requestQueue = Volley.newRequestQueue(ChatActivity.this);
-                    Map<String, String> headers = new HashMap<String, String>();
+                    Map<String, String> headers = new HashMap<>();
                     String url = serverUrl + "/api/upload";
                     MultipartRequest request = new MultipartRequest(url, headers,
                             new Response.Listener<NetworkResponse>() {
@@ -197,14 +212,13 @@ public class ChatActivity extends AppCompatActivity {
     private byte[] getByteImage(Bitmap bm) {
         ByteArrayOutputStream ba = new ByteArrayOutputStream();
         bm.compress(Bitmap.CompressFormat.JPEG, 100, ba);
-        byte[] imageData = ba.toByteArray();
-        return imageData;
+        return ba.toByteArray();
     }
 
     private void initializeFields() {
         mToolbar = (Toolbar) findViewById(R.id.chat_toolbar);
         setSupportActionBar(mToolbar);
-        getSupportActionBar().setTitle("Chat with " + selectedContact.getName());
+        getSupportActionBar().setTitle(selectedContact.getName());
 
         btnSendMessage = (ImageButton) findViewById(R.id.send_message_btn);
         btnSendFiles = (ImageButton) findViewById(R.id.send_files_btn);
@@ -332,10 +346,10 @@ public class ChatActivity extends AppCompatActivity {
                                     Message message = messagesList.get(0);
                                     if(!lastMessageId.equals(message.getId())){
 
-                                        if(!lastMessageId.equals("")){
+                                        //if(!lastMessageId.equals("")){
                                             //playSound();    // new message received
                                             //chatsList.setTitle("New msg received");
-                                        }
+                                        //}
 
                                         lastMessageId = message.getId();
 
