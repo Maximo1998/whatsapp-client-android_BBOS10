@@ -24,6 +24,7 @@
         <activity android:name=".ChatActivity" />
         <activity android:name=".ImageUploadActivity" />
         <activity android:name=".ImageViewActivity" />
+        <service android:name=".ChatService"/>
     </application>
 
 </manifest>

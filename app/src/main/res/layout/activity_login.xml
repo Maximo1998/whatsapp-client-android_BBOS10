@@ -19,14 +19,25 @@
             android:layout_height="wrap_content"
             >
             
-            <ImageView
-                android:id="@+id/login_image"
+            <TextView
+                android:id="@+id/title"
                 android:layout_width="match_parent"
-                android:layout_height="140dp"
-                android:src="@drawable/whatsapp_logo"
-                android:layout_alignParentStart="true"
-                android:layout_alignParentTop="true"
-                android:scaleType="fitCenter"
+                android:layout_height="wrap_content"
+                android:text="Novel Messenger 1.0.0.4"
+                android:textAlignment="center"
+                android:textSize="26sp"
+                android:textColor="@color/colorPrimaryDark"
+                />
+
+            <TextView
+                android:id="@+id/sub_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Unofficial WhatsApp client"
+                android:layout_below="@+id/title"
+                android:textAlignment="center"
+                android:textSize="18sp"
+                android:layout_marginTop="10dp"
                 />
 
             <EditText
@@ -34,7 +45,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
-                android:layout_below="@+id/login_image"
+                android:layout_below="@+id/sub_title"
                 android:hint="Mobile No."
                 android:inputType="phone"
                 android:background="@drawable/inputs"

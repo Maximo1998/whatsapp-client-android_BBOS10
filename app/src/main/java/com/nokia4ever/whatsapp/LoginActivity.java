@@ -28,7 +28,7 @@ public class LoginActivity extends AppCompatActivity {
     private Boolean isLoggedIn=false;
     private Button btnLogin;
     private EditText txtMobileNo, txtServerUrl;
-    private TextView lblRegisterLink;
+    //private TextView lblRegisterLink;
     private AlertDialog progressDialog;
     private SharedPreferences sharedPreferences;
 
@@ -43,11 +43,11 @@ public class LoginActivity extends AppCompatActivity {
         txtMobileNo.setText(sharedPreferences.getString("mobile_no",""));
         txtServerUrl.setText(sharedPreferences.getString("server_url","http://nokia4ever.com"));
 
-        lblRegisterLink.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-            }
-        });
+//        lblRegisterLink.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//            }
+//        });
 
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -56,12 +56,12 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-        lblRegisterLink.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(LoginActivity.this, "Open 'http://nokia4ever.com/login' on your PC and scan the QR code from your iOS or Android device", Toast.LENGTH_LONG).show();
-            }
-        });
+//        lblRegisterLink.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Toast.makeText(LoginActivity.this, "Open 'http://nokia4ever.com/login' on your PC and scan the QR code from your iOS or Android device", Toast.LENGTH_LONG).show();
+//            }
+//        });
     }
 
     private void Login(){
@@ -148,7 +148,7 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin = (Button) findViewById(R.id.login_button);
         txtMobileNo = (EditText) findViewById(R.id.login_mobile_no);
         txtServerUrl = (EditText) findViewById(R.id.login_server);
-        lblRegisterLink = (TextView) findViewById(R.id.register_link);
+        //lblRegisterLink = (TextView) findViewById(R.id.register_link);
 
         //txtMobileNo.setText("966549014671");
         txtMobileNo.setHint("e.g. 447935670297");

@@ -2,14 +2,18 @@ package com.nokia4ever.whatsapp;
 
 
 import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.media.MediaPlayer;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
@@ -52,6 +56,12 @@ public class ChatsFragment extends Fragment {
     private String lastChatId = "";
     private Contact selectedContact;
 
+    private ChatService chatService;
+    private boolean isServiceBound;
+    private ServiceConnection serviceConnection;
+
+    private Intent serviceIntent;
+
     public ChatsFragment() {
         // Required empty public constructor
     }
@@ -68,6 +78,11 @@ public class ChatsFragment extends Fragment {
 
         initializeFields();
 
+        serviceIntent = new Intent(getContext(), ChatService.class);
+        serviceIntent.putExtra("ServerUrl",serverUrl);
+        serviceIntent.putExtra("WhatsAppUser", whatsAppUser);
+        getContext().startService(serviceIntent);
+        bindService();
         timer();
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -75,6 +90,7 @@ public class ChatsFragment extends Fragment {
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
                 Message selectedChat = (Message) adapterView.getItemAtPosition(position);
                 selectedContact = new Contact(selectedChat.getSender(), selectedChat.getSenderName());
+                chatService.setSelectedContact(selectedContact);
 
                 Intent intent = new Intent(getContext(), ChatActivity.class);
                 intent.putExtra("Contact", selectedContact);
@@ -100,8 +116,11 @@ public class ChatsFragment extends Fragment {
             @Override
             public void run() {
                 retrieveAndDisplayChats();
-                if(isTimerEnabled)
+
+                if(isTimerEnabled) {
                     handler.postDelayed(this, seconds * 1000);
+
+                }
             }
         });
     }
@@ -116,7 +135,7 @@ public class ChatsFragment extends Fragment {
         progressDialog = builder.create();
     }
 
-    private void playNotificationSound(){
+    private void showNotification(String sender, String message){
         /*
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext())
                 .setSmallIcon(R.drawable.ic_notification)
@@ -138,88 +157,85 @@ public class ChatsFragment extends Fragment {
         }
 
 
+        NotificationManager notificationManager = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+
+        Intent repeatingIntent = new Intent(getContext(), MainActivity.class);
+        repeatingIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(getContext(),100,repeatingIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext())
+                .setContentIntent(pendingIntent)
+                .setSmallIcon(android.R.drawable.arrow_up_float)
+                .setContentTitle(sender)
+                .setContentText(message)
+                .setAutoCancel(true);
+
+        notificationManager.notify(100, builder.build());
+
+
+    }
+
+
+    private void unbindService1() {
+        if(isServiceBound){
+            getContext().unbindService(serviceConnection);
+            isServiceBound=false;
+        }
+    }
+
+    private void bindService(){
+        if(serviceConnection==null){
+            serviceConnection = new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+                    ChatService.MyServiceBinder myServiceBinder=(ChatService.MyServiceBinder)iBinder;
+                    chatService=myServiceBinder.getService();
+                    isServiceBound=true;
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName componentName) {
+                    isServiceBound=false;
+                }
+            };
+        }
+
+        getContext().bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
 
     }
 
     private void retrieveAndDisplayChats() {
         try {
 
-            String mobile = whatsAppUser.getUser();
+            if(isServiceBound){
+                chatsResponse = chatService.getChats();
 
-            //progressDialog.show();
-            String url = serverUrl + "/api/chats/" + mobile + "@c.us";
-            Log.d(TAG, "Caling retrieveAndDisplayChats with Url: " + url);
+                if(chatsResponse.getChats().size()>0){
+                    Message chat = chatsResponse.getChats().get(0);
+                    if(!lastChatId.equals(chat.getId())){
 
-            RequestQueue requestQueue = Volley.newRequestQueue(getContext());
-            final Gson gson = new Gson();
-
-            JsonObjectRequest request = new JsonObjectRequest(
-                    Request.Method.GET,
-                    url,
-                    null,
-                    new Response.Listener<JSONObject>() {
-                        @Override
-                        public void onResponse(JSONObject response) {
-                            progressDialog.dismiss();
-
-                            Log.i("Response", response.toString());
-
-                            try {
-                                chatsResponse = gson.fromJson(response.toString(), ChatsResponse.class);
-                                //Toast.makeText(getContext(), chatsResponse.getChats().get(0).getMessage(), Toast.LENGTH_SHORT).show();
-
-                                if(chatsResponse.getChats().size()>0){
-                                    Message chat = chatsResponse.getChats().get(0);
-                                    if(!lastChatId.equals(chat.getId())){
-
-                                        if(!lastChatId.equals("") && !selectedContact.getId().equals(chat.getSender())){
-                                            playNotificationSound();    // new message received
-                                            //chatsList.setTitle("New msg received");
-                                        }
-
-                                        lastChatId = chat.getId();
-
-                                        adapter =
-                                                new ChatsListAdapter(getContext(), R.layout.custom_chats_layout, chatsResponse.getChats());
-
-                                        mListView.setAdapter(adapter);
-                                    }
-                                }
-
-
-                            } catch (Exception ex) {
-                                Log.e(TAG, ex.toString(), ex);
-                                Toast.makeText(getContext(), ex.toString(), Toast.LENGTH_LONG).show();
-                            }
-
+                        if(!lastChatId.equals("") && !selectedContact.getId().equals(chat.getSender())){
+                            showNotification(chat.getSenderName(), chat.getMessage());
                         }
-                    },
-                    new Response.ErrorListener() {
-                        @Override
-                        public void onErrorResponse(VolleyError error) {
-                            progressDialog.dismiss();
 
-                            String errorMsg = error.getMessage();
+                        lastChatId = chat.getId();
 
-                            if (errorMsg == null) {
-                                Toast.makeText(getContext(), "Unable to connect to server", Toast.LENGTH_LONG).show();
-                            }
+                        adapter =
+                                new ChatsListAdapter(getContext(), R.layout.custom_chats_layout, chatsResponse.getChats());
 
-                            // if HTTP status code is 401
-                            else if (errorMsg.equals("java.io.IOException: No authentication challenges found")) {
-                                Toast.makeText(getContext(), "No User Session found, please login from website", Toast.LENGTH_LONG).show();
-                            } else {
-                                Toast.makeText(getContext(), "Unable to fetch chats, please check server URL", Toast.LENGTH_LONG).show();
-                            }
-                        }
+                        mListView.setAdapter(adapter);
                     }
-            );
-            requestQueue.add(request);
+                }
+            }
+            else {
+                //Toast.makeText(getContext(), "Service is not bound", Toast.LENGTH_LONG).show();
+            }
+
         } catch (Exception ex){
             Log.e(TAG, ex.getMessage(), ex);
         }
 
-    }
+    } // retrieveAndDisplayChats
 
 
 }
