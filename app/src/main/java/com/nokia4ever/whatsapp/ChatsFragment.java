@@ -1,6 +1,7 @@
 package com.nokia4ever.whatsapp;
 
 
+import android.app.AlarmManager;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
@@ -35,6 +36,8 @@ import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 
 import org.json.JSONObject;
+
+import static android.content.Context.ALARM_SERVICE;
 
 
 /**
@@ -78,12 +81,31 @@ public class ChatsFragment extends Fragment {
 
         initializeFields();
 
+        /*
         serviceIntent = new Intent(getContext(), ChatService.class);
         serviceIntent.putExtra("ServerUrl",serverUrl);
         serviceIntent.putExtra("WhatsAppUser", whatsAppUser);
         getContext().startService(serviceIntent);
         bindService();
         timer();
+        */
+
+        Intent intent = new Intent(getContext(), MyBroadcastReceiver.class);
+        intent.putExtra("ServerUrl",serverUrl);
+        intent.putExtra("WhatsAppUser", whatsAppUser);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(getContext(),100,intent,PendingIntent.FLAG_UPDATE_CURRENT);
+        AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(ALARM_SERVICE);
+
+        long intervalMillis = 5 * 1000; // 5 seconds in milliseconds
+        long triggerAtMillis = System.currentTimeMillis() + intervalMillis; // Start after 5 seconds
+
+        alarmManager.setRepeating(
+                AlarmManager.RTC_WAKEUP, // Or AlarmManager.RTC if you don't need to wake the device
+                triggerAtMillis,
+                intervalMillis,
+                pendingIntent
+        );
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override

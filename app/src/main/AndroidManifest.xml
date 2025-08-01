@@ -3,6 +3,7 @@
     package="com.nokia4ever.whatsapp">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
 
     <application
         android:allowBackup="true"
@@ -25,6 +26,7 @@
         <activity android:name=".ImageUploadActivity" />
         <activity android:name=".ImageViewActivity" />
         <service android:name=".ChatService"/>
+        <receiver android:name=".MyBroadcastReceiver"/>
     </application>
 
 </manifest>
