@@ -11,6 +11,15 @@ public class WhatsAppUser implements Serializable {
     private String user;
     private String platform;
 
+    public WhatsAppUser() {
+    }
+
+    public WhatsAppUser(String pushname, String user, String platform) {
+        this.pushname = pushname;
+        this.user = user;
+        this.platform = platform;
+    }
+
     public String getPushname() {
         return pushname;
     }

@@ -2,6 +2,7 @@ package com.nokia4ever.whatsapp;
 
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
@@ -30,6 +31,8 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
+import static android.content.Context.MODE_PRIVATE;
+
 
 /**
  * A simple {@link Fragment} subclass.
@@ -49,6 +52,8 @@ public class ContactsFragment extends Fragment {
     private ArrayList<Contact> contactsList;
     private SearchView searchView;
 
+    private SharedPreferences sharedPreferences;
+
 
     public ContactsFragment() {
         // Required empty public constructor
@@ -59,8 +64,14 @@ public class ContactsFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        serverUrl = getActivity().getIntent().getStringExtra("ServerUrl");
-        whatsAppUser = (WhatsAppUser) getActivity().getIntent().getSerializableExtra("WhatsAppUser");
+        sharedPreferences = getContext().getSharedPreferences("UserPreferences", MODE_PRIVATE);
+        serverUrl = sharedPreferences.getString("server_url","");
+
+        whatsAppUser = new WhatsAppUser(
+                sharedPreferences.getString("pushname",""),
+                sharedPreferences.getString("user",""),
+                sharedPreferences.getString("platform","")
+        );
 
         mGroupFragmentView = inflater.inflate(R.layout.fragment_contacts, container, false);
 
@@ -74,10 +85,15 @@ public class ContactsFragment extends Fragment {
                 //Contact selectedContact = (Contact) adapterView.getItemAtPosition(position);
                 Contact selectedContact = contactsList.get(position);
 
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("contact_id", selectedContact.getId());
+                editor.putString("contact_name", selectedContact.getName());
+                editor.apply();
+
                 Intent intent = new Intent(getContext(), ChatActivity.class);
-                intent.putExtra("Contact", selectedContact);
-                intent.putExtra("ServerUrl", serverUrl);
-                intent.putExtra("WhatsAppUser", whatsAppUser);
+//                intent.putExtra("Contact", selectedContact);
+//                intent.putExtra("ServerUrl", serverUrl);
+//                intent.putExtra("WhatsAppUser", whatsAppUser);
 
                 startActivity(intent);
             }

@@ -1,10 +1,12 @@
 package com.nokia4ever.whatsapp;
 
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -41,6 +43,8 @@ public class ChatService extends Service {
     private ChatsResponse chatsResponse;
     private String lastChatId = "";
     private Contact selectedContact;
+    private SharedPreferences sharedPreferences;
+    private boolean appInBackground;
 
     private boolean mIsChatHandlerOn;
 
@@ -80,8 +84,26 @@ public class ChatService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "In onStartCommand, thread id: " + Thread.currentThread().getId());
 
-        serverUrl = intent.getStringExtra("ServerUrl");
-        whatsAppUser = (WhatsAppUser) intent.getSerializableExtra("WhatsAppUser");
+        sharedPreferences = getSharedPreferences("UserPreferences", MODE_PRIVATE);
+
+
+        lastChatId = sharedPreferences.getString("last_chat_id","");
+
+        serverUrl = sharedPreferences.getString("server_url","");
+
+        whatsAppUser = new WhatsAppUser(
+                sharedPreferences.getString("pushname",""),
+                sharedPreferences.getString("user",""),
+                sharedPreferences.getString("platform","")
+        );
+
+        selectedContact = new Contact(
+                sharedPreferences.getString("contact_id",""),
+                sharedPreferences.getString("contact_name","")
+        );
+
+//        serverUrl = intent.getStringExtra("ServerUrl");
+//        whatsAppUser = (WhatsAppUser) intent.getSerializableExtra("WhatsAppUser");
 
         mIsChatHandlerOn = true;
         new Thread(new Runnable() {
@@ -91,7 +113,7 @@ public class ChatService extends Service {
             }
         }).start();
 
-        return START_REDELIVER_INTENT;
+        return START_STICKY;
     }
 
     private void startChatHandler(){
@@ -160,18 +182,26 @@ public class ChatService extends Service {
                                 chatsResponse = gson.fromJson(response.toString(), ChatsResponse.class);
                                 //Toast.makeText(getContext(), chatsResponse.getChats().get(0).getMessage(), Toast.LENGTH_SHORT).show();
 
-//                                if(chatsResponse.getChats().size()>0){
-//                                    Message chat = chatsResponse.getChats().get(0);
-//                                    if(!lastChatId.equals(chat.getId())){
-//
+                                if(chatsResponse.getChats().size()>0){
+                                    Message chat = chatsResponse.getChats().get(0);
+                                    if(!lastChatId.equals(chat.getId())){
+
 //                                        if(!lastChatId.equals("") && !selectedContact.getId().equals(chat.getSender())){
 //                                            showNotification(chat.getSenderName(), chat.getMessage());
 //                                        }
-//
-//                                        lastChatId = chat.getId();
-//
-//                                    }
-//                                }
+
+                                        appInBackground = sharedPreferences.getBoolean("app_in_background", false);
+
+                                        if(!lastChatId.equals("") && appInBackground){
+                                            showNotification(chat.getSenderName(), chat.getMessage());
+                                        }
+                                        lastChatId = chat.getId();
+
+                                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                                        editor.putString("last_chat_id", lastChatId);
+                                        editor.apply();
+                                    }
+                                }
 
                             } catch (Exception ex) {
                                 Log.e(TAG, ex.toString(), ex);
@@ -210,43 +240,23 @@ public class ChatService extends Service {
 
     } // retrieveAndDisplayChats
 
-    private void showNotification(String sender, String message){
-        /*
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext())
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle("WhatsApp")
-                .setContentText("New message received");
+    private void showNotification(String senderName, String message){
 
-        builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getContext());
-        notificationManager.notify(0, builder.build());
-        */
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-
-        try {
-            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
-            r.play();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        /*
-        NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
-
-        Intent repeatingIntent = new Intent(getApplicationContext(), MainActivity.class);
+        Intent repeatingIntent = new Intent(this, MainActivity.class);
         repeatingIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(),100,repeatingIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,100,repeatingIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext())
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                 .setContentIntent(pendingIntent)
                 .setSmallIcon(android.R.drawable.arrow_up_float)
-                .setContentTitle(sender)
+                .setContentTitle(senderName)
                 .setContentText(message)
-                .setAutoCancel(true);
+                .setAutoCancel(true)
+                .setDefaults(Notification.DEFAULT_ALL);
+
 
         notificationManager.notify(100, builder.build());
-        */
-
-    } // showNotification
+    }
 }

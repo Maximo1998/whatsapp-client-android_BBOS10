@@ -8,6 +8,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -38,6 +39,7 @@ import com.google.gson.Gson;
 import org.json.JSONObject;
 
 import static android.content.Context.ALARM_SERVICE;
+import static android.content.Context.MODE_PRIVATE;
 
 
 /**
@@ -58,6 +60,7 @@ public class ChatsFragment extends Fragment {
     private WhatsAppUser whatsAppUser;
     private String lastChatId = "";
     private Contact selectedContact;
+    private SharedPreferences sharedPreferences;
 
     private ChatService chatService;
     private boolean isServiceBound;
@@ -74,25 +77,31 @@ public class ChatsFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        serverUrl = getActivity().getIntent().getStringExtra("ServerUrl");
-        whatsAppUser = (WhatsAppUser) getActivity().getIntent().getSerializableExtra("WhatsAppUser");
+        sharedPreferences = getContext().getSharedPreferences("UserPreferences", MODE_PRIVATE);
+        serverUrl = sharedPreferences.getString("server_url","");
+
+        whatsAppUser = new WhatsAppUser(
+                sharedPreferences.getString("pushname",""),
+                sharedPreferences.getString("user",""),
+                sharedPreferences.getString("platform","")
+        );
+
+
 
         mGroupFragmentView = inflater.inflate(R.layout.fragment_chats, container, false);
 
         initializeFields();
 
-        /*
+
         serviceIntent = new Intent(getContext(), ChatService.class);
-        serviceIntent.putExtra("ServerUrl",serverUrl);
-        serviceIntent.putExtra("WhatsAppUser", whatsAppUser);
+//        serviceIntent.putExtra("ServerUrl",serverUrl);
+//        serviceIntent.putExtra("WhatsAppUser", whatsAppUser);
         getContext().startService(serviceIntent);
         bindService();
         timer();
-        */
 
+        /*
         Intent intent = new Intent(getContext(), MyBroadcastReceiver.class);
-        intent.putExtra("ServerUrl",serverUrl);
-        intent.putExtra("WhatsAppUser", whatsAppUser);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(getContext(),100,intent,PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(ALARM_SERVICE);
@@ -106,6 +115,7 @@ public class ChatsFragment extends Fragment {
                 intervalMillis,
                 pendingIntent
         );
+        */
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -114,10 +124,15 @@ public class ChatsFragment extends Fragment {
                 selectedContact = new Contact(selectedChat.getSender(), selectedChat.getSenderName());
                 chatService.setSelectedContact(selectedContact);
 
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("contact_id", selectedContact.getId());
+                editor.putString("contact_name", selectedContact.getName());
+                editor.apply();
+
                 Intent intent = new Intent(getContext(), ChatActivity.class);
-                intent.putExtra("Contact", selectedContact);
-                intent.putExtra("ServerUrl", serverUrl);
-                intent.putExtra("WhatsAppUser", whatsAppUser);
+//                intent.putExtra("Contact", selectedContact);
+//                intent.putExtra("ServerUrl", serverUrl);
+//                intent.putExtra("WhatsAppUser", whatsAppUser);
 
                 startActivity(intent);
             }
@@ -232,13 +247,14 @@ public class ChatsFragment extends Fragment {
             if(isServiceBound){
                 chatsResponse = chatService.getChats();
 
-                if(chatsResponse.getChats().size()>0){
+                if(chatsResponse != null && chatsResponse.getChats().size()>0){
                     Message chat = chatsResponse.getChats().get(0);
                     if(!lastChatId.equals(chat.getId())){
 
-                        if(!lastChatId.equals("") && !selectedContact.getId().equals(chat.getSender())){
-                            showNotification(chat.getSenderName(), chat.getMessage());
-                        }
+                        // notification will be shown from the Chat Service class
+//                        if(!lastChatId.equals("") && !selectedContact.getId().equals(chat.getSender())){
+//                            showNotification(chat.getSenderName(), chat.getMessage());
+//                        }
 
                         lastChatId = chat.getId();
 

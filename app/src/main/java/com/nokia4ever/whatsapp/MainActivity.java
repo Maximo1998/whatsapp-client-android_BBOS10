@@ -25,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
         mToolbar = (Toolbar) findViewById(R.id.main_page_toolbar);
         setSupportActionBar(mToolbar);
-        getSupportActionBar().setTitle("Novel Messenger 1.0.0.4");
+        getSupportActionBar().setTitle("Novel Messenger 1.0.0.5");
 
         mViewPager = (ViewPager) findViewById(R.id.main_tabs_pager);
         mTabsAccessorAdapter = new TabsAccessorAdapter(getSupportFragmentManager());

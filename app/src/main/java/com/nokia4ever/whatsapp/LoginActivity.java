@@ -109,9 +109,15 @@ public class LoginActivity extends AppCompatActivity {
 
                             Toast.makeText(getApplicationContext(), welcomeMsg, Toast.LENGTH_LONG).show();
 
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            editor.putString("pushname", whatsAppUser.getPushname());
+                            editor.putString("user", whatsAppUser.getUser());
+                            editor.putString("platform", whatsAppUser.getPlatform());
+                            editor.apply();
+
                             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                            intent.putExtra("WhatsAppUser", whatsAppUser);
-                            intent.putExtra("ServerUrl", serverUrl);
+//                            intent.putExtra("WhatsAppUser", whatsAppUser);
+//                            intent.putExtra("ServerUrl", serverUrl);
                             startActivity(intent);
 
                         } catch (Exception ex){

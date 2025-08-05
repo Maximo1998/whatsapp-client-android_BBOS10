@@ -7,8 +7,8 @@ android {
         applicationId "com.nokia4ever.whatsapp"
         minSdkVersion 18
         targetSdkVersion 26
-        versionCode 4
-        versionName "1.0.0.4"
+        versionCode 5
+        versionName "1.0.0.5"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -40,5 +40,8 @@ dependencies {
     compile 'com.android.support.constraint:constraint-layout:1.0.0-alpha7'
     compile 'com.github.hardillb:MultiPartVolley:0.0.4'
     compile 'com.squareup.picasso:picasso:2.5.2'
+
+    compile 'android.arch.lifecycle:extensions:1.1.0'
+
     testCompile 'junit:junit:4.12'
 }

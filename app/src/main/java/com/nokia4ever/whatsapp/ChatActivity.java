@@ -2,6 +2,7 @@ package com.nokia4ever.whatsapp;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -59,20 +60,33 @@ public class ChatActivity extends AppCompatActivity {
     private MessageResponse messagesResponse;
     private AlertDialog progressDialog;
     private int seconds = 5;
-    private Boolean isTimerEnabled=true;
+    private Boolean isTimerEnabled;
     private String serverUrl;
     private WhatsAppUser whatsAppUser;
     private String lastMessageId = "";
+    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "onCreate called");
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
 
-        serverUrl = getIntent().getStringExtra("ServerUrl");
-        whatsAppUser = (WhatsAppUser) getIntent().getSerializableExtra("WhatsAppUser");
+        sharedPreferences = getSharedPreferences("UserPreferences", MODE_PRIVATE);
+        serverUrl = sharedPreferences.getString("server_url","");
 
-        selectedContact = (Contact)getIntent().getSerializableExtra("Contact");
+        whatsAppUser = new WhatsAppUser(
+                sharedPreferences.getString("pushname",""),
+                sharedPreferences.getString("user",""),
+                sharedPreferences.getString("platform","")
+        );
+
+        //selectedContact = (Contact)getIntent().getSerializableExtra("Contact");
+        selectedContact = new Contact(
+                sharedPreferences.getString("contact_id",""),
+                sharedPreferences.getString("contact_name","")
+        );
 
         initializeFields();
 
@@ -142,13 +156,40 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
+
+    }
+
+
+    @Override
+    protected void onStart() {
+        Log.d(TAG, "onStart called");
+        super.onStart();
+    }
+
+    @Override
+    protected void onResume() {
+        Log.d(TAG, "onResume called");
+        super.onResume();
+        isTimerEnabled = true;
         timer();
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        //progressDialog.show();
+    protected void onPause() {
+        Log.d(TAG, "onPause called");
+        super.onPause();
+        isTimerEnabled = false;
+
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("contact_id", "");
+        editor.putString("contact_name", "");
+        editor.apply();
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.d(TAG, "onDestroy called");
+        super.onDestroy();
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {

@@ -66,12 +66,18 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
             if(sender.equals(whatsAppUser.getUser()) || sender.equalsIgnoreCase("Me")){
                 senderMessageText.setVisibility(View.VISIBLE);
                 senderMessageText.setBackgroundResource(R.drawable.sender_messages);
-                senderMessageText.setText(message + "\n" + createdAt);
+                if(sender.contains("@g.us"))
+                    senderMessageText.setText(whatsAppUser.getPushname() + "\n" + message + "\n" + createdAt);
+                else
+                    senderMessageText.setText(message + "\n" + createdAt);
             }
             else {
                 receiverMessageText.setVisibility(View.VISIBLE);
                 receiverMessageText.setBackgroundResource(R.drawable.receiver_messages);
-                receiverMessageText.setText(message + "\n" + createdAt);
+                if(sender.contains("@g.us"))
+                    receiverMessageText.setText(senderName + "\n" + message + "\n" + createdAt);
+                else
+                    receiverMessageText.setText(message + "\n" + createdAt);
             }
         }
         else if(chatType.equals("image")){

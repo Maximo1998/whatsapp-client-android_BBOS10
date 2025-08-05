@@ -1,10 +1,13 @@
 package com.nokia4ever.whatsapp;
 
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Build;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
@@ -17,6 +20,8 @@ import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 
 import org.json.JSONObject;
+
+import static android.content.Context.MODE_PRIVATE;
 
 /**
  * Created by hunte on 7/29/2025.
@@ -31,28 +36,64 @@ public class MyBroadcastReceiver extends BroadcastReceiver {
     private String lastChatId = "";
     private Contact selectedContact;
     private Context context;
+    private SharedPreferences sharedPreferences;
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        this.context = context;
-        //serverUrl = intent.getStringExtra("ServerUrl");
-        //whatsAppUser = (WhatsAppUser) intent.getSerializableExtra("WhatsAppUser");
 
-        //retrieveChats();
-        showNotification("Imran","test");
+        sharedPreferences = context.getSharedPreferences("UserPreferences", MODE_PRIVATE);
+        lastChatId = sharedPreferences.getString("last_chat_id","");
+
+        serverUrl = sharedPreferences.getString("server_url","");
+
+        whatsAppUser = new WhatsAppUser(
+                sharedPreferences.getString("pushname",""),
+                sharedPreferences.getString("user",""),
+                sharedPreferences.getString("platform","")
+        );
+
+        selectedContact = new Contact(
+                sharedPreferences.getString("contact_id",""),
+                sharedPreferences.getString("contact_name","")
+        );
+
+        this.context = context;
+
+        //createNotificationChannel();
+        retrieveChats();
+        //showNotification("Imran","test");
 
     } // onReceive
 
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is not in the Support Library.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "channel name";
+            String description = "channel desc";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel("11", name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this.
+            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
     private void retrieveChats() {
         try {
+            Log.d(TAG, "Caling retrieveChats");
 
             String mobile = whatsAppUser.getUser();
 
-            //progressDialog.show();
-            String url = serverUrl + "/api/chats/" + mobile + "@c.us";
-            Log.d(TAG, "Caling retrieveAndDisplayChats with Url: " + url);
+            Log.d(TAG, "mobile: " + whatsAppUser.getUser());
+            String url = serverUrl + "/api/chats/" + mobile + "@c.us?page_size=1&page=1";
+
+            Log.d(TAG, "url: " + url);
 
             RequestQueue requestQueue = Volley.newRequestQueue(context);
+            Log.d(TAG, "request queue object created");
+
             final Gson gson = new Gson();
 
             JsonObjectRequest request = new JsonObjectRequest(
@@ -64,23 +105,32 @@ public class MyBroadcastReceiver extends BroadcastReceiver {
                         public void onResponse(JSONObject response) {
                             //progressDialog.dismiss();
 
-                            Log.i(TAG, "Response: " + response.toString());
+                            Log.d(TAG, "Response: " + response.toString());
 
                             try {
                                 chatsResponse = gson.fromJson(response.toString(), ChatsResponse.class);
-                                //Toast.makeText(getContext(), chatsResponse.getChats().get(0).getMessage(), Toast.LENGTH_SHORT).show();
 
                                 if(chatsResponse.getChats().size()>0){
+                                    Log.d(TAG, "first message: " + chatsResponse.getChats().get(0).getMessage());
+
                                     Message chat = chatsResponse.getChats().get(0);
+                                    Log.d(TAG, "lastChatId: [" + lastChatId + "], chatId: [" + chat.getId() + "]");
+
                                     if(!lastChatId.equals(chat.getId())){
 
                                         if(!lastChatId.equals("") && !selectedContact.getId().equals(chat.getSender())){
+                                            Log.d(TAG, "condition met to show notification");
                                             showNotification(chat.getSenderName(), chat.getMessage());
                                         }
 
                                         lastChatId = chat.getId();
+                                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                                        editor.putString("last_chat_id", lastChatId);
+                                        editor.apply();
 
                                     }
+
+
                                 }
 
                             } catch (Exception ex) {
