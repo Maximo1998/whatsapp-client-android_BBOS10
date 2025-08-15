@@ -1,17 +1,16 @@
 package com.nokia4ever.whatsapp;
 
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Handler;
-import android.provider.MediaStore;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
+import androidx.appcompat.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -118,13 +117,15 @@ public class ChatActivity extends AppCompatActivity {
         btnSendFiles.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                /*
-                Intent intent = new Intent(ChatActivity.this, ImageUploadActivity.class);
+
+                Intent intent = new Intent(ChatActivity.this, RecordAudioActivity.class);
                 intent.putExtra("ServerUrl", serverUrl);
                 intent.putExtra("WhatsAppUser", whatsAppUser);
                 intent.putExtra("Contact", selectedContact);
                 startActivity(intent);
-                */
+
+
+                /*
                 CharSequence options[] = new CharSequence[]{
                         "Gallery",
                         "Camera"
@@ -153,6 +154,11 @@ public class ChatActivity extends AppCompatActivity {
                     }
                 });
                 builder.show();
+                */
+                /*
+                Intent intent = new Intent(ChatActivity.this, RecordAudioActivity.class);
+                startActivity(intent);
+                */
             }
         });
 

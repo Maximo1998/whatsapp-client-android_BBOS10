@@ -6,7 +6,7 @@
     tools:context="com.nokia4ever.whatsapp.ContactsFragment">
 
 
-    <android.support.v7.widget.SearchView
+    <androidx.appcompat.widget.SearchView
         android:id="@+id/search_text"
         android:layout_width="match_parent"
         android:layout_height="50dp"
@@ -14,7 +14,7 @@
 
         >
 
-    </android.support.v7.widget.SearchView>
+    </androidx.appcompat.widget.SearchView>
 
     <ListView
         android:layout_width="match_parent"

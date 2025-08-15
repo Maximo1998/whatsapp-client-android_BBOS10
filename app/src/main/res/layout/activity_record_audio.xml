@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".RecordAudioActivity">
+
+    <com.visualizer.amplitude.AudioRecordView
+        android:id="@+id/audioRecordView"
+        android:layout_width="256dp"
+        android:layout_height="64dp"
+        app:chunkAlignTo="bottom"
+        app:chunkRoundedCorners="true"
+        app:chunkSoftTransition="true"
+        app:chunkColor="@android:color/holo_blue_dark"
+        app:chunkSpace="1dp"
+        app:chunkWidth="2dp"
+        app:chunkMaxHeight="48dp"
+        app:chunkMinHeight="2dp"
+        app:direction="leftToRight"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@+id/tv_time"
+        />
+
+    <TextView
+        android:id="@+id/tv_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="00:00"
+        android:textAlignment="center"
+        android:textSize="70dp"
+        android:textColor="@android:color/black"
+        android:layout_above="@+id/ib_record"
+        />
+
+    <ImageView
+        android:id="@+id/ib_record"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="40dp"
+        android:src="@drawable/ic_mic_none_black_24dp"
+        android:tint="@android:color/holo_red_dark"
+        />
+
+    <ImageView
+        android:id="@+id/ib_play"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="75dp"
+        android:layout_marginStart="20dp"
+        android:layout_toEndOf="@+id/ib_record"
+        android:src="@drawable/ic_play_arrow_black_24dp"
+        />
+
+    <ImageView
+        android:id="@+id/ib_upload"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="75dp"
+        android:layout_marginStart="20dp"
+        android:layout_toStartOf="@+id/ib_record"
+        android:src="@drawable/ic_file_upload_black_24dp"
+        />
+
+</RelativeLayout>

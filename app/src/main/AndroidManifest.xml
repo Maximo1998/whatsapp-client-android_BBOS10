@@ -3,7 +3,9 @@
     package="com.nokia4ever.whatsapp">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
         android:name=".MyApplication"
@@ -13,6 +15,8 @@
         android:roundIcon="@mipmap/whatsapp_icon"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <activity android:name=".RecordAudioActivity"></activity>
+        <activity android:name=".AudioRecordActivity" />
         <activity android:name=".MainActivity" />
         <activity android:name=".LoginActivity">
             <intent-filter>
@@ -26,8 +30,10 @@
         <activity android:name=".ChatActivity" />
         <activity android:name=".ImageUploadActivity" />
         <activity android:name=".ImageViewActivity" />
-        <service android:name=".ChatService"/>
-        <receiver android:name=".MyBroadcastReceiver"/>
+
+        <service android:name=".ChatService" />
+
+        <receiver android:name=".MyBroadcastReceiver" />
     </application>
 
 </manifest>
