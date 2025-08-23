@@ -1,6 +1,7 @@
 package com.nokia4ever.whatsapp;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -41,6 +42,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+
 public class RecordAudioActivity extends AppCompatActivity {
 
     private static final String TAG = "RecordAudioActivity";
@@ -67,6 +69,7 @@ public class RecordAudioActivity extends AppCompatActivity {
     private String serverUrl;
     private WhatsAppUser whatsAppUser;
     private SharedPreferences sharedPreferences;
+    private AlertDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,59 +92,125 @@ public class RecordAudioActivity extends AppCompatActivity {
         ibRecord.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                /*
+                if (checkRecordingPermission()) {
+                    if (!isRecording) {
+                        isRecording = true;
+                        mediaRecorder = new MediaRecorder();
+                        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+                        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+                        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+                        mediaRecorder.setOutputFile(getRecordingFilePath().getPath());
+                        try {
+                            mediaRecorder.prepare();
+                        } catch (IOException e) {
+                            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+
+                        mediaRecorder.start();
+                        playableSeconds = 0;
+                        seconds = 0;
+                        dummySeconds = 0;
+                        ibRecord.setImageDrawable(ContextCompat.getDrawable(RecordAudioActivity.this,
+                                R.drawable.ic_mic_black_24dp));
+                        runTimer();
+                        runTimer2();
+
+                    }
+                    else {
+                        mediaRecorder.stop();
+                        mediaRecorder.release();
+                        mediaRecorder = null;
+                        playableSeconds = seconds;
+                        dummySeconds = seconds;
+                        seconds = 0;
+                        isRecording = false;
+
+                        handler.removeCallbacksAndMessages(null);
+                        handler2.removeCallbacksAndMessages(null);
+                        ibRecord.setImageDrawable(ContextCompat.getDrawable(RecordAudioActivity.this,
+                                R.drawable.ic_mic_none_black_24dp));
+
+                    }
+                } else {
+                    requestRecordingPermission();
+
+                }
+                */
+
                 if (checkRecordingPermission()) {
                     if (!isRecording) {
                         isRecording = true;
                         executorService.execute(new Runnable() {
                             @Override
                             public void run() {
-                                mediaRecorder = new MediaRecorder();
-                                mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-                                mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-                                mediaRecorder.setOutputFile(getRecordingFilePath().getPath());
-                                path = getRecordingFilePath().getPath();
-                                mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 
                                 try {
+                                    mediaRecorder = new MediaRecorder();
+                                    mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+                                    mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+                                    mediaRecorder.setOutputFile(getRecordingFilePath().getPath());
+                                    path = getRecordingFilePath().getPath();
+                                    mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+
                                     mediaRecorder.prepare();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
+
+                                    mediaRecorder.start();
                                 }
-                                mediaRecorder.start();
+                                catch (Exception e){
+                                    Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
+                                }
 
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        playableSeconds = 0;
-                                        seconds = 0;
-                                        dummySeconds = 0;
-                                        ibRecord.setImageDrawable(ContextCompat.getDrawable(RecordAudioActivity.this,
-                                                R.drawable.ic_mic_black_24dp));
-                                        runTimer();
-                                        runTimer2();
+
+                                        try {
+                                            playableSeconds = 0;
+                                            seconds = 0;
+                                            dummySeconds = 0;
+                                            ibRecord.setImageDrawable(ContextCompat.getDrawable(RecordAudioActivity.this,
+                                                    R.drawable.ic_mic_black_24dp));
+                                            runTimer();
+                                            runTimer2();
+                                        }
+                                        catch (Exception e){
+                                            Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
+                                        }
                                     }
                                 });
                             }
                         });
+
+
                     } else {
                         executorService.execute(new Runnable() {
                             @Override
                             public void run() {
-                                mediaRecorder.stop();
-                                mediaRecorder.release();
-                                mediaRecorder = null;
-                                playableSeconds = seconds;
-                                dummySeconds = seconds;
-                                seconds = 0;
-                                isRecording = false;
+                                try {
+                                    mediaRecorder.stop();
+                                    mediaRecorder.release();
+                                    mediaRecorder = null;
+                                    playableSeconds = seconds;
+                                    dummySeconds = seconds;
+                                    seconds = 0;
+                                    isRecording = false;
+                                }
+                                catch (Exception e){
+                                    Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
+                                }
 
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        handler.removeCallbacksAndMessages(null);
-                                        handler2.removeCallbacksAndMessages(null);
-                                        ibRecord.setImageDrawable(ContextCompat.getDrawable(RecordAudioActivity.this,
-                                                R.drawable.ic_mic_none_black_24dp));
+                                        try {
+                                            handler.removeCallbacksAndMessages(null);
+                                            handler2.removeCallbacksAndMessages(null);
+                                            ibRecord.setImageDrawable(ContextCompat.getDrawable(RecordAudioActivity.this,
+                                                    R.drawable.ic_mic_none_black_24dp));
+                                        } catch (Exception e){
+                                            Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
+                                        }
                                     }
                                 });
                             }
@@ -151,6 +220,7 @@ public class RecordAudioActivity extends AppCompatActivity {
                     requestRecordingPermission();
 
                 }
+
             }
         }); //ibRecord button
 
@@ -205,14 +275,20 @@ public class RecordAudioActivity extends AppCompatActivity {
                         new Response.Listener<NetworkResponse>() {
                             @Override
                             public void onResponse(NetworkResponse response) {
-                                Toast.makeText(RecordAudioActivity.this, "Upload successful", Toast.LENGTH_SHORT).show();
+                                progressDialog.dismiss();
+
+                                Toast.makeText(RecordAudioActivity.this, "Upload successful", Toast.LENGTH_LONG).show();
+                                finish();
                             }
                         },
                         new Response.ErrorListener() {
                             @Override
                             public void onErrorResponse(VolleyError error) {
-                                Toast.makeText(RecordAudioActivity.this, error.toString(), Toast.LENGTH_SHORT).show();
+                                progressDialog.dismiss();
+
+                                Toast.makeText(RecordAudioActivity.this, error.toString(), Toast.LENGTH_LONG).show();
                                 Log.e(TAG, error.getMessage(), error);
+                                finish();
                             }
                         });
 
@@ -221,10 +297,15 @@ public class RecordAudioActivity extends AppCompatActivity {
                 byte[] data = getBytesFromFile(getRecordingFilePath());
                 request.addPart(new MultipartRequest.FilePart("media", "audio/mpeg", "wa_recording.mp3",data ));
 
+                progressDialog.show();
                 requestQueue.add(request);
             }
         });
 
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(false); // if you want user to wait for some process to finish,
+        builder.setView(R.layout.layout_loading_dialog);
+        progressDialog = builder.create();
     }
 
     public byte[] getBytesFromFile(File file) {

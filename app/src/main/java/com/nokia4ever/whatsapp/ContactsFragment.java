@@ -77,25 +77,6 @@ public class ContactsFragment extends Fragment {
 
         timer();
 
-        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-                //Contact selectedContact = (Contact) adapterView.getItemAtPosition(position);
-                Contact selectedContact = contactsList.get(position);
-
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putString("contact_id", selectedContact.getId());
-                editor.putString("contact_name", selectedContact.getName());
-                editor.apply();
-
-                Intent intent = new Intent(getContext(), ChatActivity.class);
-//                intent.putExtra("Contact", selectedContact);
-//                intent.putExtra("ServerUrl", serverUrl);
-//                intent.putExtra("WhatsAppUser", whatsAppUser);
-
-                startActivity(intent);
-            }
-        });
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override

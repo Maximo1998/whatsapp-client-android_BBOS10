@@ -20,7 +20,11 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.UnsupportedEncodingException;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -130,19 +134,17 @@ public class LoginActivity extends AppCompatActivity {
                     public void onErrorResponse(VolleyError error) {
                         progressDialog.dismiss();
 
-                        String errorMsg = error.getMessage();
+                        try {
+                            String responseBody = new String(error.networkResponse.data, "utf-8");
+                            JSONObject data = new JSONObject(responseBody);
+                            String message = data.getString("error");
+                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
 
-                        if(errorMsg == null){
+                        } catch (Exception e) {
                             Toast.makeText(getApplicationContext(), "Unable to connect to server", Toast.LENGTH_LONG).show();
                         }
 
-                        // if HTTP status code is 401
-                        else if(errorMsg.equals("java.io.IOException: No authentication challenges found")){
-                            Toast.makeText(getApplicationContext(), "No User Session found, please login from website", Toast.LENGTH_LONG).show();
-                        }
-                        else {
-                            Toast.makeText(getApplicationContext(), "Unable to login, please check server URL", Toast.LENGTH_LONG).show();
-                        }
+
                     }
                 }
         );

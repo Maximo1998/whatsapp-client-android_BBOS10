@@ -1,5 +1,6 @@
 package com.nokia4ever.whatsapp;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -11,6 +12,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import androidx.appcompat.widget.Toolbar;
+
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -93,13 +96,26 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
                 Message selectedMessage = (Message) adapterView.getItemAtPosition(position);
+                Intent intent = null;
 
-                Intent intent = new Intent(ChatActivity.this, ImageViewActivity.class);
-                intent.putExtra("Message", selectedMessage);
-                intent.putExtra("ServerUrl", serverUrl);
-                intent.putExtra("WhatsAppUser", whatsAppUser);
+                if(selectedMessage.getChatType().equals("image"))
+                    intent = new Intent(ChatActivity.this, ImageViewActivity.class);
 
-                startActivity(intent);
+                else if(selectedMessage.getChatType().equals("audio") || selectedMessage.getChatType().equals("ptt"))
+                    intent = new Intent(ChatActivity.this, PlayAudioActivity.class);
+
+
+                if(selectedMessage.getChatType().equals("audio")
+                        || selectedMessage.getChatType().equals("ptt")
+                        || selectedMessage.getChatType().equals("image")
+                ) {
+                    intent.putExtra("Message", selectedMessage);
+                    intent.putExtra("ServerUrl", serverUrl);
+                    intent.putExtra("WhatsAppUser", whatsAppUser);
+
+                    startActivity(intent);
+                }
+
             }
         });
 
@@ -118,17 +134,14 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                Intent intent = new Intent(ChatActivity.this, RecordAudioActivity.class);
-                intent.putExtra("ServerUrl", serverUrl);
-                intent.putExtra("WhatsAppUser", whatsAppUser);
-                intent.putExtra("Contact", selectedContact);
-                startActivity(intent);
 
 
-                /*
+
+
                 CharSequence options[] = new CharSequence[]{
                         "Gallery",
-                        "Camera"
+                        "Camera",
+                        "Record Audio"
                 };
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(ChatActivity.this);
@@ -150,11 +163,18 @@ public class ChatActivity extends AppCompatActivity {
                                 startActivityForResult(intent2, CAMERA_REQUEST);
                                 break;
 
+                            case 2:
+                                Intent intent3 = new Intent(ChatActivity.this, RecordAudioActivity.class);
+                                intent3.putExtra("ServerUrl", serverUrl);
+                                intent3.putExtra("WhatsAppUser", whatsAppUser);
+                                intent3.putExtra("Contact", selectedContact);
+                                startActivity(intent3);
+                                break;
                         }
                     }
                 });
                 builder.show();
-                */
+
                 /*
                 Intent intent = new Intent(ChatActivity.this, RecordAudioActivity.class);
                 startActivity(intent);
@@ -381,8 +401,6 @@ public class ChatActivity extends AppCompatActivity {
                         public void onResponse(JSONObject response) {
                             progressDialog.dismiss();
 
-                            Log.i("Response", response.toString());
-
                             try {
                                 messagesResponse = gson.fromJson(response.toString(), MessageResponse.class);
                                 //Toast.makeText(getContext(), chatsResponse.getChats().get(0).getMessage(), Toast.LENGTH_SHORT).show();
@@ -422,17 +440,14 @@ public class ChatActivity extends AppCompatActivity {
                         public void onErrorResponse(VolleyError error) {
                             progressDialog.dismiss();
 
-                            String errorMsg = error.getMessage();
+                            try {
+                                String responseBody = new String(error.networkResponse.data, "utf-8");
+                                JSONObject data = new JSONObject(responseBody);
+                                String message = data.getString("error");
+                                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
 
-                            if (errorMsg == null) {
-                                Toast.makeText(getApplicationContext(), "Unable to connect to server", Toast.LENGTH_LONG).show();
-                            }
-
-                            // if HTTP status code is 401
-                            else if (errorMsg.equals("java.io.IOException: No authentication challenges found")) {
-                                Toast.makeText(getApplicationContext(), "No User Session found, please login from website", Toast.LENGTH_LONG).show();
-                            } else {
-                                Toast.makeText(getApplicationContext(), "Unable to fetch messages, please check server URL", Toast.LENGTH_LONG).show();
+                            } catch (Exception e) {
+                                Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
                             }
                         }
                     }

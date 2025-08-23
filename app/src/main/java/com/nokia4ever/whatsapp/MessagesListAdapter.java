@@ -62,7 +62,7 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
         receiverMessageImage.setVisibility(View.GONE);
 
         // check if the current message is sent by the sender (i.e. the logged in user)
-        if(chatType.equals("chat")){
+        if(chatType.equals("chat") || chatType.equals("audio") || chatType.equals("ptt") ){
             if(sender.equals(whatsAppUser.getUser()) || sender.equalsIgnoreCase("Me")){
                 senderMessageText.setVisibility(View.VISIBLE);
                 senderMessageText.setBackgroundResource(R.drawable.sender_messages);

@@ -2,6 +2,7 @@ package com.nokia4ever.whatsapp;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +11,8 @@ import android.widget.Filter;
 import android.widget.Filterable;
 
 import java.util.ArrayList;
+
+import static android.content.Context.MODE_PRIVATE;
 
 /**
  * Created by saudi on 21/07/2025.
@@ -25,7 +28,7 @@ public class ContactsAdapter extends BaseAdapter implements Filterable {
 
     WhatsAppUser whatsAppUser;
     String serverUrl;
-
+    private SharedPreferences sharedPreferences;
 
     public ContactsAdapter(Context context, ArrayList<Contact> contacts, WhatsAppUser whatsAppUser, String serverUrl) {
         this.context = context;
@@ -34,6 +37,8 @@ public class ContactsAdapter extends BaseAdapter implements Filterable {
 
         this.whatsAppUser = whatsAppUser;
         this.serverUrl = serverUrl;
+
+        sharedPreferences = context.getSharedPreferences("UserPreferences", MODE_PRIVATE);
     }
 
     @Override
@@ -66,10 +71,19 @@ public class ContactsAdapter extends BaseAdapter implements Filterable {
         viewHolder.SetItemClickListener(new ItemClickListener() {
             @Override
             public void OnItemClicked(View view) {
+
+                Contact selectedContact = contacts.get(i);
+
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("contact_id", selectedContact.getId());
+                editor.putString("contact_name", selectedContact.getName());
+                editor.apply();
+
+
                 Intent intent = new Intent(context, ChatActivity.class);
-                intent.putExtra("Contact", contacts.get(i));
-                intent.putExtra("ServerUrl", serverUrl);
-                intent.putExtra("WhatsAppUser", whatsAppUser);
+//                intent.putExtra("Contact", contacts.get(i));
+//                intent.putExtra("ServerUrl", serverUrl);
+//                intent.putExtra("WhatsAppUser", whatsAppUser);
 
                 context.startActivity(intent);
             }
