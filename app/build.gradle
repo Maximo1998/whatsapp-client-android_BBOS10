@@ -1,3 +1,4 @@
+/*
 apply plugin: 'com.android.application'
 
 android {
@@ -40,4 +41,86 @@ dependencies {
     implementation 'com.github.Armen101:AudioRecordView:1.0.5'
 
     testImplementation 'junit:junit:4.12'
+}
+*/
+
+
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.nokia4ever.whatsapp'
+    compileSdk 36
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        applicationId "com.nokia4ever.whatsapp"
+        minSdk 17
+        targetSdk 36
+        versionCode 6
+        versionName "1.0.0.6"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        multiDexEnabled true
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+ext {
+    jacksonVersion = 2.18
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestImplementation('androidx.test.espresso:espresso-core:3.1.0-alpha4', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    // Source - https://stackoverflow.com/a/56145098
+    // Posted by Atetc, modified by community. See post 'Timeline' for change history
+    // Retrieved 2025-11-08, License - CC BY-SA 4.0
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.annotation:annotation:1.0.0'
+    implementation 'androidx.core:core-ktx:1.2.0'
+    implementation 'androidx.arch.core:core-runtime:1.2.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.4.1'
+
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.0'
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0'
+
+
+    implementation 'com.google.android.material:material:1.2.0'
+    implementation 'com.google.code.gson:gson:2.4'
+    implementation 'com.android.volley:volley:1.2.0'
+    implementation 'com.github.hardillb:MultiPartVolley:0.0.4'
+    implementation 'com.github.Armen101:AudioRecordView:1.0.5'
+    implementation 'de.hdodenhof:circleimageview:3.1.0'
+    implementation 'com.squareup.picasso:picasso:2.5.2'
+
+    api('io.jsonwebtoken:jjwt-api:0.13.0')
+    runtimeOnly('io.jsonwebtoken:jjwt-impl:0.13.0')
+    runtimeOnly('io.jsonwebtoken:jjwt-orgjson:0.13.0') {
+        exclude(group: 'org.json', module: 'json') //provided by Android natively
+    }
+
+    implementation 'io.fusionauth:fusionauth-jwt:5.0.0'
+    implementation 'com.afollestad.material-dialogs:core:0.9.4.5'
+
+    implementation 'androidx.multidex:multidex:2.0.1'
+
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0-beta01'
+    implementation 'com.github.Armen101:AudioRecordView:1.0.5'
 }
