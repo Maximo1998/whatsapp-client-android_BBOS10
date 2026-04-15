@@ -155,7 +155,7 @@ public class ChatService extends Service {
 
             //progressDialog.show();
             String url = serverUrl + "/api/chats/" + mobile + "@c.us";
-            Log.d(TAG, "Caling retrieveAndDisplayChats with Url: " + url);
+            Log.d(TAG, "Calling retrieveAndDisplayChats with Url: " + url);
 
             RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
             final Gson gson = new Gson();

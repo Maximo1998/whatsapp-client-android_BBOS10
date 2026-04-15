@@ -271,6 +271,8 @@ public class RecordAudioActivity extends AppCompatActivity {
                 RequestQueue requestQueue = Volley.newRequestQueue(RecordAudioActivity.this);
                 Map<String, String> headers = new HashMap<String, String>();
                 String url = serverUrl + "/api/upload";
+                Log.d(TAG, "onClick: " + serverUrl);
+
                 MultipartRequest request = new MultipartRequest(url, headers,
                         new Response.Listener<NetworkResponse>() {
                             @Override

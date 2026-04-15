@@ -241,6 +241,7 @@ public class ChatActivity extends AppCompatActivity {
                     RequestQueue requestQueue = Volley.newRequestQueue(ChatActivity.this);
                     Map<String, String> headers = new HashMap<>();
                     String url = serverUrl + "/api/upload";
+                    Log.d(TAG, "onActivityResult: " + serverUrl);
                     MultipartRequest request = new MultipartRequest(url, headers,
                             new Response.Listener<NetworkResponse>() {
                                 @Override

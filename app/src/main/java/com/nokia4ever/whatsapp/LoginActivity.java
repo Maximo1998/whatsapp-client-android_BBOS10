@@ -27,7 +27,7 @@ import org.json.JSONObject;
 import java.io.UnsupportedEncodingException;
 
 public class LoginActivity extends AppCompatActivity {
-
+    private static final String TAG = "LoginActivity";
     private Boolean isLoggedIn=false;
     private Button btnLogin;
     private EditText txtMobileNo, txtServerUrl;
@@ -88,7 +88,7 @@ public class LoginActivity extends AppCompatActivity {
 
         progressDialog.show();
         String url = serverUrl + "/api/login/" + mobile;
-
+        Log.d(TAG, "Login URL: " + url);
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         final Gson gson = new Gson();
 
@@ -135,9 +135,10 @@ public class LoginActivity extends AppCompatActivity {
                         progressDialog.dismiss();
 
                         try {
-                            String responseBody = new String(error.networkResponse.data, "utf-8");
-                            JSONObject data = new JSONObject(responseBody);
-                            String message = data.getString("error");
+                            //String responseBody = new String(error.networkResponse.data, "utf-8");
+                            //JSONObject data = new JSONObject(responseBody);
+                            //String message = data.getString("error");
+                            String message = error.getMessage();
                             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
 
                         } catch (Exception e) {
