@@ -1,14 +1,15 @@
 package com.nokia4ever.whatsapp;
 
-import android.app.Application;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleObserver;
 import androidx.lifecycle.OnLifecycleEvent;
 import androidx.lifecycle.ProcessLifecycleOwner;
+import androidx.multidex.MultiDexApplication;
 import android.content.SharedPreferences;
 import android.util.Log;
 
-public class MyApplication extends Application implements LifecycleObserver {
+// Extiende MultiDexApplication para mantener soporte multidex en API < 21
+public class MyApplication extends MultiDexApplication implements LifecycleObserver {
     private static final String TAG = "MyApplication";
 
     private SharedPreferences sharedPreferences;

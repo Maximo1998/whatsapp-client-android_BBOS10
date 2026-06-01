@@ -8,6 +8,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ServiceInfo;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
@@ -74,7 +75,14 @@ public class ChatService extends Service {
                 sharedPreferences.getString("contact_name", ""));
 
         createNotificationChannel();
-        startForeground(FOREGROUND_NOTIF_ID, buildForegroundNotification());
+        Notification foregroundNotif = buildForegroundNotification();
+        // API 29+ requiere pasar el tipo; API < 29 usa la firma original
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(FOREGROUND_NOTIF_ID, foregroundNotif,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(FOREGROUND_NOTIF_ID, foregroundNotif);
+        }
 
         mIsChatHandlerOn = true;
         new Thread(new Runnable() {
