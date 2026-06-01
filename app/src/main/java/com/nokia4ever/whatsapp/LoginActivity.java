@@ -37,6 +37,7 @@ public class LoginActivity extends AppCompatActivity {
     private RequestQueue queue;
     private final Gson gson = new Gson();
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private boolean isLoginInProgress = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +61,8 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        // Auto-login silencioso si ya hay sesión guardada
+        if (isLoginInProgress) return;
+
         String mobile    = sharedPreferences.getString("mobile_no", "");
         String serverUrl = sharedPreferences.getString("server_url", "");
         String savedUser = sharedPreferences.getString("user", "");
@@ -74,6 +76,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        isLoginInProgress = false;
         handler.removeCallbacksAndMessages(null);
         if (queue != null) queue.cancelAll(TAG);
     }
@@ -91,6 +94,8 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        if (isLoginInProgress) return;
+
         sharedPreferences.edit()
                 .putString("mobile_no", mobile)
                 .putString("server_url", serverUrl)
@@ -103,6 +108,7 @@ public class LoginActivity extends AppCompatActivity {
     /** Llama a /api/startclient y luego sondea hasta que el cliente WA esté listo. */
     private void startClientThenPoll(final String mobile, final String serverUrl,
                                      final boolean silent) {
+        isLoginInProgress = true;
         String url = serverUrl + "/api/startclient/" + mobile;
         JsonObjectRequest req = new JsonObjectRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONObject>() {
@@ -115,6 +121,7 @@ public class LoginActivity extends AppCompatActivity {
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
+                        isLoginInProgress = false;
                         progressDialog.dismiss();
                         if (!silent) {
                             Toast.makeText(LoginActivity.this,
@@ -136,6 +143,7 @@ public class LoginActivity extends AppCompatActivity {
     private void pollStatus(final String mobile, final String serverUrl,
                             final int attempt, final boolean silent) {
         if (attempt >= POLL_MAX_ATTEMPTS) {
+            isLoginInProgress = false;
             progressDialog.dismiss();
             if (!silent) {
                 Toast.makeText(this,
@@ -188,6 +196,7 @@ public class LoginActivity extends AppCompatActivity {
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
+                        isLoginInProgress = false;
                         progressDialog.dismiss();
                         try {
                             WhatsAppUser user = gson.fromJson(response.toString(), WhatsAppUser.class);
@@ -210,8 +219,17 @@ public class LoginActivity extends AppCompatActivity {
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
+                        isLoginInProgress = false;
                         progressDialog.dismiss();
-                        Toast.makeText(LoginActivity.this, "Login failed", Toast.LENGTH_LONG).show();
+                        String msg = "Login failed";
+                        try {
+                            if (error.networkResponse != null && error.networkResponse.data != null) {
+                                msg = new String(error.networkResponse.data, "utf-8");
+                            } else if (error.getMessage() != null) {
+                                msg = error.getMessage();
+                            }
+                        } catch (Exception ignored) {}
+                        Toast.makeText(LoginActivity.this, msg, Toast.LENGTH_LONG).show();
                     }
                 }
         );
