@@ -245,7 +245,8 @@ public class ChatsFragment extends Fragment {
                         lastChatId = chat.getId();
 
                         adapter =
-                                new ChatsListAdapter(getContext(), R.layout.custom_chats_layout, chatsResponse.getChats());
+                                new ChatsListAdapter(getContext(), R.layout.custom_chats_layout,
+                                        chatsResponse.getChats(), serverUrl, whatsAppUser.getUser());
 
                         mListView.setAdapter(adapter);
                     }

@@ -13,6 +13,7 @@ public class Message implements Serializable {
     private String updatedAt;
     private String createdAt;
     private String chatType;
+    private String mediaFilename;
 
 
     public Message() {
@@ -105,8 +106,8 @@ public class Message implements Serializable {
         return chatType;
     }
 
-
-
+    public String getMediaFilename() { return mediaFilename; }
+    public void setMediaFilename(String f) { this.mediaFilename = f; }
 
 
 }
