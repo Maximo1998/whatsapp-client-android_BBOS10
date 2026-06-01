@@ -9,7 +9,11 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -29,13 +33,27 @@ public class ChatsListAdapter extends ArrayAdapter<Message> {
         this.userNumber = userNumber;
     }
 
+    private String formatTimestamp(String utc) {
+        if (utc == null || utc.isEmpty()) return "";
+        try {
+            SimpleDateFormat in = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            in.setTimeZone(TimeZone.getTimeZone("UTC"));
+            Date d = in.parse(utc);
+            SimpleDateFormat out = new SimpleDateFormat("HH:mm", Locale.getDefault());
+            out.setTimeZone(TimeZone.getDefault());
+            return out.format(d);
+        } catch (Exception e) {
+            return utc;
+        }
+    }
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         Message item = getItem(position);
         String sender     = item.getSender();
         String message    = item.getMessage();
         String senderName = item.getSenderName();
-        String createdAt  = item.getCreatedAt();
+        String createdAt  = formatTimestamp(item.getCreatedAt());
 
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(resource, parent, false);

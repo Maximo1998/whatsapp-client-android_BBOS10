@@ -321,32 +321,44 @@ public class ChatActivity extends AppCompatActivity {
 
     private void showContactProfileDialog() {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_contact_profile, null);
-        CircleImageView profilePic = dialogView.findViewById(R.id.dialog_profile_pic);
-        TextView contactIdView     = dialogView.findViewById(R.id.dialog_contact_id);
+        CircleImageView profilePic    = dialogView.findViewById(R.id.dialog_profile_pic);
+        TextView phoneView            = dialogView.findViewById(R.id.dialog_contact_phone);
+        TextView aboutView            = dialogView.findViewById(R.id.dialog_contact_about);
 
-        // Mostrar número limpio o etiqueta amigable en lugar del ID interno @lid
+        // Mostrar número preliminar mientras carga
         String rawId = selectedContact.getId();
-        String displayId;
-        if (rawId.contains("@c.us")) {
-            displayId = "+" + rawId.replace("@c.us", "");
-        } else if (rawId.contains("@lid")) {
-            displayId = "WhatsApp Contact";
-        } else {
-            displayId = rawId;
-        }
-        contactIdView.setText(displayId);
+        if (rawId.contains("@c.us")) phoneView.setText("+" + rawId.replace("@c.us", ""));
+        else phoneView.setText(rawId.replaceAll("@.*", ""));
 
         Picasso.with(this)
-                .load(serverUrl + "/api/profilepic/" + whatsAppUser.getUser() + "@c.us/" + selectedContact.getId())
+                .load(serverUrl + "/api/profilepic/" + whatsAppUser.getUser() + "@c.us/" + rawId)
                 .placeholder(R.drawable.profile_image)
                 .error(R.drawable.profile_image)
                 .into(profilePic);
 
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(selectedContact.getName())
                 .setView(dialogView)
-                .setPositiveButton("Cerrar", null)
+                .setPositiveButton("Close", null)
                 .show();
+
+        // Cargar info real del contacto (teléfono + estado) en segundo plano
+        String url = serverUrl + "/api/contact/" + whatsAppUser.getUser() + "@c.us/" + rawId;
+        JsonObjectRequest req = new JsonObjectRequest(Request.Method.GET, url, null,
+                response -> {
+                    if (!dialog.isShowing() || isFinishing()) return;
+                    String phone = response.optString("phone", "");
+                    String about = response.optString("about", "");
+                    if (!phone.isEmpty()) phoneView.setText(phone);
+                    if (!about.isEmpty()) {
+                        aboutView.setText(about);
+                        aboutView.setVisibility(View.VISIBLE);
+                    }
+                },
+                error -> { /* silencioso — ya tenemos el número preliminar */ }
+        );
+        req.setTag(TAG);
+        mQueue.add(req);
     }
 
     private void sendMessage() {

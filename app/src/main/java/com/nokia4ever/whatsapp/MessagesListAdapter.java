@@ -10,7 +10,11 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -30,6 +34,21 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
         this.serverUrl = serverUrl;
     }
 
+    /** Convierte timestamp UTC "yyyy-MM-dd HH:mm:ss" a hora local "HH:mm". */
+    private String formatTimestamp(String utc) {
+        if (utc == null || utc.isEmpty()) return "";
+        try {
+            SimpleDateFormat in = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            in.setTimeZone(TimeZone.getTimeZone("UTC"));
+            Date d = in.parse(utc);
+            SimpleDateFormat out = new SimpleDateFormat("HH:mm", Locale.getDefault());
+            out.setTimeZone(TimeZone.getDefault());
+            return out.format(d);
+        } catch (Exception e) {
+            return utc;
+        }
+    }
+
     /** Reemplaza el contenido del adapter sin recrearlo (evita perder referencia en la Activity). */
     public void update(ArrayList<Message> messages) {
         clear();
@@ -43,7 +62,7 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
         String sender   = msg.getSender().replace("@c.us", "");
         String message  = msg.getMessage();
         String senderName = msg.getSenderName();
-        String createdAt  = msg.getCreatedAt();
+        String createdAt  = formatTimestamp(msg.getCreatedAt());
         String chatType   = msg.getChatType() != null ? msg.getChatType() : "chat";
         String _id        = msg.getId();
         String mediaFilename = msg.getMediaFilename();
