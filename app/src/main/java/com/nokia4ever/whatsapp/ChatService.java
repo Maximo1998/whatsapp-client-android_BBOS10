@@ -39,6 +39,7 @@ public class ChatService extends Service {
     private Contact selectedContact;
     private SharedPreferences sharedPreferences;
     private volatile boolean mIsChatHandlerOn;
+    private RequestQueue mQueue;
 
     class MyServiceBinder extends Binder {
         public ChatService getService() { return ChatService.this; }
@@ -74,6 +75,7 @@ public class ChatService extends Service {
                 sharedPreferences.getString("contact_id", ""),
                 sharedPreferences.getString("contact_name", ""));
 
+        mQueue = Volley.newRequestQueue(getApplicationContext());
         createNotificationChannel();
         Notification foregroundNotif = buildForegroundNotification();
         // API 29+ requiere pasar el tipo; API < 29 usa la firma original
@@ -141,7 +143,7 @@ public class ChatService extends Service {
     private void retrieveChats() {
         try {
             String url = serverUrl + "/api/chats/" + whatsAppUser.getUser() + "@c.us";
-            RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+            RequestQueue queue = mQueue;
             final Gson gson = new Gson();
 
             queue.add(new JsonObjectRequest(Request.Method.GET, url, null,

@@ -65,9 +65,12 @@ public class ChatActivity extends AppCompatActivity {
     private MessagesListAdapter adapter;
     private ArrayList<Message> currentMessages = new ArrayList<>();
     private AlertDialog progressDialog;
-    private int seconds = 5;
+    private static final int POLL_INTERVAL_MS = 5000;
     private Boolean isTimerEnabled;
     private String serverUrl;
+    private RequestQueue mQueue;
+    private final Handler timerHandler = new Handler(Looper.getMainLooper());
+    private Runnable timerRunnable;
     private WhatsAppUser whatsAppUser;
     private String lastMessageId = "";
     private SharedPreferences sharedPreferences;
@@ -80,6 +83,7 @@ public class ChatActivity extends AppCompatActivity {
 
         sharedPreferences = getSharedPreferences("UserPreferences", MODE_PRIVATE);
         serverUrl = sharedPreferences.getString("server_url", "");
+        mQueue = Volley.newRequestQueue(this);
 
         whatsAppUser = new WhatsAppUser(
                 sharedPreferences.getString("pushname", ""),
@@ -165,22 +169,36 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     protected void onResume() {
-        Log.d(TAG, "onResume called");
         super.onResume();
         isTimerEnabled = true;
-        timer();
+        timerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (isTimerEnabled && !isFinishing()) {
+                    retrieveAndDisplayMessages();
+                    timerHandler.postDelayed(this, POLL_INTERVAL_MS);
+                }
+            }
+        };
+        timerHandler.post(timerRunnable);
     }
 
     @Override
     protected void onPause() {
-        Log.d(TAG, "onPause called");
         super.onPause();
         isTimerEnabled = false;
+        timerHandler.removeCallbacks(timerRunnable);
+        sharedPreferences.edit()
+                .putString("contact_id", "")
+                .putString("contact_name", "")
+                .apply();
+    }
 
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("contact_id", "");
-        editor.putString("contact_name", "");
-        editor.apply();
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        timerHandler.removeCallbacksAndMessages(null);
+        if (mQueue != null) mQueue.cancelAll(TAG);
     }
 
     @Override
@@ -198,7 +216,7 @@ public class ChatActivity extends AppCompatActivity {
                 }
 
                 progressDialog.show();
-                RequestQueue requestQueue = Volley.newRequestQueue(ChatActivity.this);
+                RequestQueue requestQueue = mQueue;
                 Map<String, String> headers = new HashMap<>();
                 String url = serverUrl + "/api/upload";
                 MultipartRequest request = new MultipartRequest(url, headers,
@@ -330,18 +348,6 @@ public class ChatActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void timer() {
-        final Handler handler = new Handler();
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                retrieveAndDisplayMessages();
-                if (isTimerEnabled)
-                    handler.postDelayed(this, seconds * 1000);
-            }
-        });
-    }
-
     private void sendMessage() {
         final String messageText = txtMessage.getText().toString().trim();
         txtMessage.setText("");
@@ -370,7 +376,7 @@ public class ChatActivity extends AppCompatActivity {
         // Enviar al servidor
         try {
             String url = serverUrl + "/api/messages/";
-            RequestQueue requestQueue = Volley.newRequestQueue(this);
+            RequestQueue requestQueue = mQueue;
 
             JSONObject jsonRequest = new JSONObject();
             try {
@@ -414,7 +420,7 @@ public class ChatActivity extends AppCompatActivity {
             String url = serverUrl + "/api/messages/" + whatsAppUser.getUser() + "@c.us/" + selectedContact.getId();
             Log.d(TAG, "retrieveAndDisplayMessages: " + url);
 
-            RequestQueue requestQueue = Volley.newRequestQueue(this);
+            RequestQueue requestQueue = mQueue;
             final Gson gson = new Gson();
 
             JsonObjectRequest request = new JsonObjectRequest(

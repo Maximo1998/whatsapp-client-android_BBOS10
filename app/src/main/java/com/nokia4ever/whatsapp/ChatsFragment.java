@@ -13,6 +13,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.IBinder;
 import androidx.fragment.app.Fragment;
 import androidx.core.app.NotificationCompat;
@@ -40,8 +41,8 @@ public class ChatsFragment extends Fragment {
     private ChatsListAdapter adapter;
     private ChatsResponse chatsResponse;
     private AlertDialog progressDialog;
-    private int seconds = 5;
-    private Boolean isTimerEnabled=true;
+    private static final int POLL_INTERVAL_MS = 5000;
+    private Boolean isTimerEnabled = false;
     private String serverUrl;
     private WhatsAppUser whatsAppUser;
     private String lastChatId = "";
@@ -50,6 +51,8 @@ public class ChatsFragment extends Fragment {
 
     private ChatService chatService;
     private boolean isServiceBound;
+    private final Handler timerHandler = new Handler(Looper.getMainLooper());
+    private Runnable timerRunnable;
     private ServiceConnection serviceConnection;
 
     private Intent serviceIntent;
@@ -84,7 +87,6 @@ public class ChatsFragment extends Fragment {
 //        serviceIntent.putExtra("WhatsAppUser", whatsAppUser);
         getContext().startService(serviceIntent);
         bindService();
-        timer();
 
         /*
         Intent intent = new Intent(getContext(), MyBroadcastReceiver.class);
@@ -130,22 +132,37 @@ public class ChatsFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        selectedContact = new Contact("","");
+        selectedContact = new Contact("", "");
     }
 
-    private void timer(){
-        final Handler handler = new Handler();
-        handler.post(new Runnable() {
+    @Override
+    public void onResume() {
+        super.onResume();
+        isTimerEnabled = true;
+        timerRunnable = new Runnable() {
             @Override
             public void run() {
-                retrieveAndDisplayChats();
-
-                if(isTimerEnabled) {
-                    handler.postDelayed(this, seconds * 1000);
-
+                if (isTimerEnabled && isAdded()) {
+                    retrieveAndDisplayChats();
+                    timerHandler.postDelayed(this, POLL_INTERVAL_MS);
                 }
             }
-        });
+        };
+        timerHandler.post(timerRunnable);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        isTimerEnabled = false;
+        timerHandler.removeCallbacks(timerRunnable);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        timerHandler.removeCallbacksAndMessages(null);
+        if (isServiceBound) unbindService1();
     }
 
     private void initializeFields() {

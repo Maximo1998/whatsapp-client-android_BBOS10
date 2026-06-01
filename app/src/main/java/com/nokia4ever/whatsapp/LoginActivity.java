@@ -48,7 +48,7 @@ public class LoginActivity extends AppCompatActivity {
         queue = Volley.newRequestQueue(this);
         initializeFields();
 
-        txtMobileNo.setText(sharedPreferences.getString("mobile_no", ""));
+        // No pre-rellenar el número — el usuario debe introducirlo siempre conscientemente
         String savedServer = sharedPreferences.getString("server_url", "");
         txtServerUrl.setText(savedServer.isEmpty() ? "https://" : savedServer);
 
