@@ -15,6 +15,8 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -278,12 +280,42 @@ public class ChatActivity extends AppCompatActivity {
         progressDialog = builder.create();
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_logout) {
+            getSharedPreferences("UserPreferences", MODE_PRIVATE).edit()
+                    .remove("user").remove("pushname").remove("platform")
+                    .remove("last_chat_id").apply();
+            Intent i = new Intent(this, LoginActivity.class);
+            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(i);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     private void showContactProfileDialog() {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_contact_profile, null);
         CircleImageView profilePic = dialogView.findViewById(R.id.dialog_profile_pic);
         TextView contactIdView     = dialogView.findViewById(R.id.dialog_contact_id);
 
-        contactIdView.setText(selectedContact.getId());
+        // Mostrar número limpio o etiqueta amigable en lugar del ID interno @lid
+        String rawId = selectedContact.getId();
+        String displayId;
+        if (rawId.contains("@c.us")) {
+            displayId = "+" + rawId.replace("@c.us", "");
+        } else if (rawId.contains("@lid")) {
+            displayId = "WhatsApp Contact";
+        } else {
+            displayId = rawId;
+        }
+        contactIdView.setText(displayId);
 
         Picasso.with(this)
                 .load(serverUrl + "/api/profilepic/" + whatsAppUser.getUser() + "@c.us/" + selectedContact.getId())

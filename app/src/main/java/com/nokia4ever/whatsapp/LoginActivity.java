@@ -2,15 +2,18 @@ package com.nokia4ever.whatsapp;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -20,18 +23,13 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.UnsupportedEncodingException;
 
 public class LoginActivity extends AppCompatActivity {
     private static final String TAG = "LoginActivity";
-    private Boolean isLoggedIn=false;
+
     private Button btnLogin;
     private EditText txtMobileNo, txtServerUrl;
-    //private TextView lblRegisterLink;
     private AlertDialog progressDialog;
     private SharedPreferences sharedPreferences;
 
@@ -40,146 +38,140 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        InitializeFields();
-
         sharedPreferences = getSharedPreferences("UserPreferences", MODE_PRIVATE);
-        txtMobileNo.setText(sharedPreferences.getString("mobile_no",""));
-        txtServerUrl.setText(sharedPreferences.getString("server_url","http://nokia4ever.com"));
+        initializeFields();
 
-//        lblRegisterLink.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//            }
-//        });
+        txtMobileNo.setText(sharedPreferences.getString("mobile_no", ""));
+        txtServerUrl.setText(sharedPreferences.getString("server_url", "http://nokia4ever.com"));
 
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                Login();
-            }
+            public void onClick(View view) { login(); }
         });
-
-//        lblRegisterLink.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                Toast.makeText(LoginActivity.this, "Open 'http://nokia4ever.com/login' on your PC and scan the QR code from your iOS or Android device", Toast.LENGTH_LONG).show();
-//            }
-//        });
     }
 
-    private void Login(){
-        String mobile = txtMobileNo.getText().toString();
-        final String serverUrl = txtServerUrl.getText().toString();
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Auto-login si ya hay sesión guardada
+        String savedMobile = sharedPreferences.getString("mobile_no", "");
+        String savedServer = sharedPreferences.getString("server_url", "");
+        String savedUser   = sharedPreferences.getString("user", "");
 
-        if(TextUtils.isEmpty(mobile)){
-            Toast.makeText(this, "Please enter the mobile number", Toast.LENGTH_SHORT).show();
-            return;
+        if (!savedMobile.isEmpty() && !savedServer.isEmpty() && !savedUser.isEmpty()) {
+            progressDialog.show();
+            autoLogin(savedMobile, savedServer);
         }
+    }
 
-        if(TextUtils.isEmpty(serverUrl)){
-            Toast.makeText(this, "Please enter the server URL", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    /** Arranca el cliente WA en el servidor y luego verifica el login. */
+    private void autoLogin(final String mobile, final String serverUrl) {
+        String startUrl = serverUrl + "/api/startclient/" + mobile;
+        RequestQueue queue = Volley.newRequestQueue(this);
 
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("mobile_no", mobile);
-        editor.putString("server_url", serverUrl);
-        editor.apply();
+        queue.add(new JsonObjectRequest(Request.Method.GET, startUrl, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Log.d(TAG, "startclient OK, waiting for client to be ready...");
+                        // Dar tiempo al cliente WA para autenticarse con la sesión guardada
+                        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                            @Override
+                            public void run() { verifyLogin(mobile, serverUrl, true); }
+                        }, 4000);
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e(TAG, "startclient error: " + error.getMessage());
+                        progressDialog.dismiss();
+                        // No hay servidor o error de red — mostrar formulario
+                    }
+                }
+        ));
+    }
 
-        progressDialog.show();
+    /** Llama a /api/login para confirmar que el cliente WA está listo. */
+    private void verifyLogin(final String mobile, final String serverUrl, final boolean isAutoLogin) {
         String url = serverUrl + "/api/login/" + mobile;
-        Log.d(TAG, "Login URL: " + url);
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        RequestQueue queue = Volley.newRequestQueue(this);
         final Gson gson = new Gson();
 
-        JsonObjectRequest request = new JsonObjectRequest(
-                Request.Method.GET,
-                url,
-                null,
+        queue.add(new JsonObjectRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
                         progressDialog.dismiss();
-
-                        Log.i("Response", response.toString());
-
                         try {
-                            WhatsAppUser whatsAppUser = gson.fromJson(response.toString(), WhatsAppUser.class);
-                            String welcomeMsg = "User ["
-                                    + whatsAppUser.getPushname() + "] logged in with mobile ["
-                                    + whatsAppUser.getUser() + "] from ["
-                                    + whatsAppUser.getPlatform() + "]";
-
-                            Toast.makeText(getApplicationContext(), welcomeMsg, Toast.LENGTH_LONG).show();
-
-                            SharedPreferences.Editor editor = sharedPreferences.edit();
-                            editor.putString("pushname", whatsAppUser.getPushname());
-                            editor.putString("user", whatsAppUser.getUser());
-                            editor.putString("platform", whatsAppUser.getPlatform());
-                            editor.apply();
-
-                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-//                            intent.putExtra("WhatsAppUser", whatsAppUser);
-//                            intent.putExtra("ServerUrl", serverUrl);
-                            startActivity(intent);
-
-                        } catch (Exception ex){
-                            Toast.makeText(getApplicationContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                            WhatsAppUser user = gson.fromJson(response.toString(), WhatsAppUser.class);
+                            saveUserAndProceed(user, serverUrl, mobile);
+                        } catch (Exception ex) {
+                            if (!isAutoLogin) Toast.makeText(getApplicationContext(), ex.toString(), Toast.LENGTH_LONG).show();
                         }
-
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         progressDialog.dismiss();
-
-                        try {
-                            //String responseBody = new String(error.networkResponse.data, "utf-8");
-                            //JSONObject data = new JSONObject(responseBody);
-                            //String message = data.getString("error");
-                            String message = error.getMessage();
-                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-
-                        } catch (Exception e) {
-                            Toast.makeText(getApplicationContext(), "Unable to connect to server", Toast.LENGTH_LONG).show();
+                        if (!isAutoLogin) {
+                            Toast.makeText(getApplicationContext(),
+                                    "Unable to connect to server", Toast.LENGTH_LONG).show();
                         }
-
-
+                        // Auto-login falló silenciosamente — el usuario verá el formulario
                     }
                 }
-        );
-        requestQueue.add(request);
+        ));
     }
 
-    private void InitializeFields() {
-        btnLogin = (Button) findViewById(R.id.login_button);
-        txtMobileNo = (EditText) findViewById(R.id.login_mobile_no);
-        txtServerUrl = (EditText) findViewById(R.id.login_server);
-        //lblRegisterLink = (TextView) findViewById(R.id.register_link);
+    private void saveUserAndProceed(WhatsAppUser user, String serverUrl, String mobile) {
+        String welcomeMsg = "Welcome " + user.getPushname() + "!";
+        Toast.makeText(getApplicationContext(), welcomeMsg, Toast.LENGTH_SHORT).show();
 
-        //txtMobileNo.setText("966549014671");
-        txtMobileNo.setHint("e.g. 447935670297");
-        //txtServerUrl.setText("http://51.20.189.165");
+        sharedPreferences.edit()
+                .putString("pushname", user.getPushname())
+                .putString("user", user.getUser())
+                .putString("platform", user.getPlatform())
+                .putString("mobile_no", mobile)
+                .putString("server_url", serverUrl)
+                .apply();
+
+        startActivity(new Intent(LoginActivity.this, MainActivity.class));
+    }
+
+    private void login() {
+        String mobile    = txtMobileNo.getText().toString().trim();
+        String serverUrl = txtServerUrl.getText().toString().trim();
+
+        if (TextUtils.isEmpty(mobile)) {
+            Toast.makeText(this, "Please enter mobile number", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (TextUtils.isEmpty(serverUrl)) {
+            Toast.makeText(this, "Please enter server URL", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        sharedPreferences.edit()
+                .putString("mobile_no", mobile)
+                .putString("server_url", serverUrl)
+                .apply();
+
+        progressDialog.show();
+        autoLogin(mobile, serverUrl);
+    }
+
+    private void initializeFields() {
+        btnLogin    = findViewById(R.id.login_button);
+        txtMobileNo = findViewById(R.id.login_mobile_no);
+        txtServerUrl = findViewById(R.id.login_server);
+        txtMobileNo.setHint("e.g. 34677279900");
         txtServerUrl.setText("http://nokia4ever.com");
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setCancelable(false); // if you want user to wait for some process to finish,
+        builder.setCancelable(false);
         builder.setView(R.layout.layout_loading_dialog);
         progressDialog = builder.create();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-
-        if(isLoggedIn){
-            SendUserToMainActivity();
-        }
-    }
-
-    private void SendUserToMainActivity() {
-        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-        startActivity(intent);
     }
 }
