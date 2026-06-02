@@ -179,6 +179,16 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
+        // Al abrir un chat, borrar la notificación de la barra de estado (id 100,
+        // compartido por ChatService.MSG_NOTIF_ID). Antes solo se quitaba al
+        // responder; ahora desaparece simplemente con entrar al chat.
+        try {
+            android.app.NotificationManager nm =
+                    (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm != null) nm.cancel(100);
+        } catch (Exception ignored) {}
+
         isTimerEnabled = true;
         timerRunnable = new Runnable() {
             @Override

@@ -46,6 +46,7 @@ public class ChatsFragment extends Fragment {
     private String serverUrl;
     private WhatsAppUser whatsAppUser;
     private String lastChatId = "";
+    private String lastSignature = ""; // detecta cambios en cualquier chat (mensaje o no-leídos)
     private Contact selectedContact;
     private SharedPreferences sharedPreferences;
 
@@ -250,21 +251,17 @@ public class ChatsFragment extends Fragment {
             if(isServiceBound){
                 chatsResponse = chatService.getChats();
 
-                if(chatsResponse != null && chatsResponse.getChats().size()>0){
-                    Message chat = chatsResponse.getChats().get(0);
-                    if(!lastChatId.equals(chat.getId())){
-
-                        // notification will be shown from the Chat Service class
-//                        if(!lastChatId.equals("") && !selectedContact.getId().equals(chat.getSender())){
-//                            showNotification(chat.getSenderName(), chat.getMessage());
-//                        }
-
-                        lastChatId = chat.getId();
-
-                        adapter =
-                                new ChatsListAdapter(getContext(), R.layout.custom_chats_layout,
-                                        chatsResponse.getChats(), serverUrl, whatsAppUser.getUser());
-
+                if(chatsResponse != null && chatsResponse.getChats().size() > 0 && isAdded()){
+                    // Reconstruir cuando CAMBIE cualquier chat (mensaje nuevo o contador
+                    // de no-leídos). Antes solo se refrescaba si cambiaba el primer chat,
+                    // por eso la bolita de no-leídos no desaparecía al entrar al chat
+                    // (mark-read pone unread=0 pero el primer chat seguía siendo el mismo).
+                    String sig = buildSignature(chatsResponse.getChats());
+                    if (!sig.equals(lastSignature)) {
+                        lastSignature = sig;
+                        lastChatId = chatsResponse.getChats().get(0).getId();
+                        adapter = new ChatsListAdapter(getContext(), R.layout.custom_chats_layout,
+                                chatsResponse.getChats(), serverUrl, whatsAppUser.getUser());
                         mListView.setAdapter(adapter);
                     }
                 }
@@ -279,5 +276,16 @@ public class ChatsFragment extends Fragment {
 
     } // retrieveAndDisplayChats
 
+    /** Firma del estado de la lista: id + no-leídos + último mensaje de cada chat.
+     *  Si cambia, hay que repintar (mensaje nuevo o bolita de no-leídos actualizada). */
+    private String buildSignature(java.util.ArrayList<Message> chats) {
+        StringBuilder sb = new StringBuilder();
+        for (Message c : chats) {
+            sb.append(c.getId()).append(':')
+              .append(c.getUnreadCount()).append(':')
+              .append(c.getMessage()).append('|');
+        }
+        return sb.toString();
+    }
 
 }
