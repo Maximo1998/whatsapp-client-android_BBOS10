@@ -33,18 +33,17 @@ public class ChatsListAdapter extends ArrayAdapter<Message> {
         this.userNumber = userNumber;
     }
 
-    private String formatTimestamp(String utc) {
-        if (utc == null || utc.isEmpty()) return "";
-        try {
-            SimpleDateFormat in = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-            in.setTimeZone(TimeZone.getTimeZone("UTC"));
-            Date d = in.parse(utc);
-            SimpleDateFormat out = new SimpleDateFormat("HH:mm", Locale.getDefault());
-            out.setTimeZone(TimeZone.getDefault());
-            return out.format(d);
-        } catch (Exception e) {
-            return utc;
+    /** El servidor ya envía la hora en su zona horaria (la del servidor es la
+     *  fuente de verdad porque el reloj/zona del dispositivo es poco fiable).
+     *  Mostramos HH:mm tal cual, sin reconvertir zonas. */
+    private String formatTimestamp(String serverTime) {
+        if (serverTime == null || serverTime.isEmpty()) return "";
+        // Formato esperado: "yyyy-MM-dd HH:mm:ss" → extraer "HH:mm"
+        int sp = serverTime.indexOf(' ');
+        if (sp >= 0 && serverTime.length() >= sp + 6) {
+            return serverTime.substring(sp + 1, sp + 6);
         }
+        return serverTime;
     }
 
     @Override

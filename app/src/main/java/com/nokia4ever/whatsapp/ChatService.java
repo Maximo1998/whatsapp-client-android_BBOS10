@@ -155,12 +155,10 @@ public class ChatService extends Service {
                                 if (chatsResponse.getChats().size() > 0) {
                                     Message chat = chatsResponse.getChats().get(0);
                                     if (!lastChatId.equals(chat.getId())) {
-                                        // Solo notificar si el mensaje es de OTROS (no de nosotros)
-                                        String sender = chat.getSender();
-                                        String myNumber = whatsAppUser.getUser();
-                                        boolean isFromMe = sender.contains(myNumber) ||
-                                                          sender.equalsIgnoreCase("Me") ||
-                                                          sender.equalsIgnoreCase("me");
+                                        // El servidor marca last_from_me=1 cuando el último mensaje
+                                        // lo envié yo (desde este u otro dispositivo). No notificar
+                                        // esos; solo los recibidos de contactos.
+                                        boolean isFromMe = chat.getLastFromMe() == 1;
 
                                         boolean appInBackground = sharedPreferences.getBoolean("app_in_background", false);
                                         if (!lastChatId.isEmpty() && appInBackground && !isFromMe) {

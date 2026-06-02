@@ -43,19 +43,16 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
         this.serverUrl = serverUrl;
     }
 
-    /** Convierte timestamp UTC "yyyy-MM-dd HH:mm:ss" a hora local "HH:mm". */
-    private String formatTimestamp(String utc) {
-        if (utc == null || utc.isEmpty()) return "";
-        try {
-            SimpleDateFormat in = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-            in.setTimeZone(TimeZone.getTimeZone("UTC"));
-            Date d = in.parse(utc);
-            SimpleDateFormat out = new SimpleDateFormat("HH:mm", Locale.getDefault());
-            out.setTimeZone(TimeZone.getDefault());
-            return out.format(d);
-        } catch (Exception e) {
-            return utc;
+    /** El servidor ya envía la hora en su zona horaria (fuente de verdad).
+     *  Mostramos "HH:mm" tal cual, sin reconvertir zonas (el reloj del
+     *  dispositivo BB10 aplica mal el horario de verano). */
+    private String formatTimestamp(String serverTime) {
+        if (serverTime == null || serverTime.isEmpty()) return "";
+        int sp = serverTime.indexOf(' ');
+        if (sp >= 0 && serverTime.length() >= sp + 6) {
+            return serverTime.substring(sp + 1, sp + 6);
         }
+        return serverTime;
     }
 
     /** Reemplaza el contenido del adapter sin recrearlo (evita perder referencia en la Activity). */
