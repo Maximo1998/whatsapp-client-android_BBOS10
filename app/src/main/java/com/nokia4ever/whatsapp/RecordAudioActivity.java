@@ -22,7 +22,9 @@ import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.android.volley.NetworkResponse;
@@ -50,10 +52,12 @@ public class RecordAudioActivity extends AppCompatActivity {
     private static final int REQUEST_AUDIO_PERMISSION_CODE=101;
     MediaRecorder mediaRecorder;
     MediaPlayer mediaPlayer;
-    ImageView ibRecord;
-    ImageView ibPlay;
-    ImageView ibUpload;
+    ImageButton ibRecord;
+    ImageButton ibPlay;
+    ImageButton ibCancel;
+    Button ibUpload;
     TextView tvTime;
+    TextView tvStatus;
     boolean isRecording = false;
     boolean isPlaying = false;
     int seconds = 0;
@@ -83,8 +87,10 @@ public class RecordAudioActivity extends AppCompatActivity {
 
         ibRecord = findViewById(R.id.ib_record);
         ibPlay = findViewById(R.id.ib_play);
+        ibCancel = findViewById(R.id.ib_cancel);
         ibUpload = findViewById(R.id.ib_upload);
         tvTime = findViewById(R.id.tv_time);
+        tvStatus = findViewById(R.id.tv_status);
         audioRecordView = (AudioRecordView) findViewById(R.id.audioRecordView);
 
         mediaPlayer = new MediaPlayer();
@@ -264,6 +270,25 @@ public class RecordAudioActivity extends AppCompatActivity {
             }
 
         }); // ibPlay button
+
+        ibCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (isRecording) {
+                    mediaRecorder.stop();
+                    mediaRecorder.release();
+                    mediaRecorder = null;
+                    isRecording = false;
+                    handler.removeCallbacksAndMessages(null);
+                    seconds = 0;
+                    dummySeconds = 0;
+                    tvTime.setText("00:00");
+                    tvStatus.setText("Recording cancelled");
+                } else if (path != null) {
+                    finish();
+                }
+            }
+        }); // ibCancel button
 
         ibUpload.setOnClickListener(new View.OnClickListener() {
             @Override

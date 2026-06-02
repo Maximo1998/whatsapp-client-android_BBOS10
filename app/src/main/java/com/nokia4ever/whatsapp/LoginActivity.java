@@ -241,7 +241,7 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin     = findViewById(R.id.login_button);
         txtMobileNo  = findViewById(R.id.login_mobile_no);
         txtServerUrl = findViewById(R.id.login_server);
-        txtMobileNo.setHint("e.g. 34677279900");
+        txtMobileNo.setHint("Phone number");
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);

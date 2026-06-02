@@ -56,6 +56,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private static final String TAG = "ChatActivity";
     private static final int CAMERA_REQUEST = 1888;
+    private String cameraPhotoPath;
     private static final int GALLERY_REQUEST = 1889;
 
     private Toolbar mToolbar;
@@ -151,6 +152,12 @@ public class ChatActivity extends AppCompatActivity {
                                 break;
                             case 1:
                                 Intent intent2 = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                                // Save photo to file instead of getting thumbnail
+                                File photoFile = createImageFile();
+                                if (photoFile != null) {
+                                    cameraPhotoPath = photoFile.getAbsolutePath();
+                                    intent2.putExtra(MediaStore.EXTRA_OUTPUT, android.net.Uri.fromFile(photoFile));
+                                }
                                 startActivityForResult(intent2, CAMERA_REQUEST);
                                 break;
                             case 2:
@@ -202,6 +209,17 @@ public class ChatActivity extends AppCompatActivity {
         if (mQueue != null) mQueue.cancelAll(TAG);
     }
 
+    private File createImageFile() {
+        try {
+            File storageDir = getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES);
+            File image = File.createTempFile("camera_", ".jpg", storageDir);
+            return image;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -213,7 +231,13 @@ public class ChatActivity extends AppCompatActivity {
                     final InputStream imageStream = getContentResolver().openInputStream(imageUri);
                     photo = BitmapFactory.decodeStream(imageStream);
                 } else {
-                    photo = (Bitmap) data.getExtras().get("data");
+                    // Load photo from file at full resolution
+                    if (cameraPhotoPath != null) {
+                        photo = BitmapFactory.decodeFile(cameraPhotoPath);
+                    } else {
+                        Toast.makeText(this, "Camera photo save failed", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                 }
 
                 progressDialog.show();
@@ -304,7 +328,7 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
+        getMenuInflater().inflate(R.menu.chat_menu, menu);
         return true;
     }
 
@@ -326,7 +350,12 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void addContactToPhoneBook() {
-        String phoneNumber = selectedContact.getId().replaceAll("[^0-9]", "");
+        // Extract clean phone number from ID (remove @c.us, @lid, etc.)
+        String id = selectedContact.getId();
+        String phoneNumber = id.replaceAll("[^0-9+]", "");
+        if (!phoneNumber.startsWith("+")) {
+            phoneNumber = "+" + phoneNumber;
+        }
         String contactName = selectedContact.getName();
 
         Intent intent = new Intent(android.content.Intent.ACTION_INSERT);

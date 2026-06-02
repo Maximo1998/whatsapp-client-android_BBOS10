@@ -94,8 +94,7 @@
             android:background="@drawable/rounded_button_play"
             android:scaleType="centerInside"
             android:contentDescription="Play"
-            android:layout_marginStart="16dp"
-            android:visibility="gone" />
+            android:layout_marginStart="16dp" />
     </LinearLayout>
 
     <!-- Send Button (Only when recording done) -->
