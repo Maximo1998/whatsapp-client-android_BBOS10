@@ -100,7 +100,7 @@
             android:layout_marginStart="16dp" />
     </LinearLayout>
 
-    <!-- Send Button (Visible when recording is done) -->
+    <!-- Send Button (always visible; click validates a recording exists) -->
     <Button
         android:id="@+id/ib_upload"
         android:layout_width="match_parent"
@@ -110,7 +110,6 @@
         android:textStyle="bold"
         android:background="@android:color/holo_green_dark"
         android:textColor="@android:color/white"
-        android:visibility="gone"
         android:layout_marginBottom="16dp" />
 
 </LinearLayout>

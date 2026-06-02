@@ -336,7 +336,10 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_add_contact) {
+        if (item.getItemId() == R.id.action_contact_info) {
+            showContactInfo();
+            return true;
+        } else if (item.getItemId() == R.id.action_add_contact) {
             addContactToPhoneBook();
             return true;
         } else if (item.getItemId() == R.id.action_logout) {
@@ -352,27 +355,54 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void addContactToPhoneBook() {
-        String id = selectedContact.getId();
-        String contactName = selectedContact.getName();
+        final String id = selectedContact.getId();
+        final String contactName = selectedContact.getName();
 
-        // Extract phone number: remove @c.us, @lid, @g.us suffixes and non-digit chars
-        String phoneNumber = id;
+        Log.d("AddContact", "Raw ID: " + id + ", Name: " + contactName);
 
-        // Remove @xxx suffixes
-        if (phoneNumber.contains("@")) {
-            phoneNumber = phoneNumber.substring(0, phoneNumber.indexOf("@"));
+        // IMPORTANT: For @lid contacts the digits in the ID are NOT the phone number
+        // (e.g. 30296699318376@lid is an opaque identifier). The server resolves the
+        // real phone via WhatsApp's API, so always ask the server first.
+        String userId = whatsAppUser.getUser() + "@c.us";
+        String url = serverUrl + "/api/contact/" + userId + "/" + id;
+
+        Toast.makeText(this, "Resolving phone number…", Toast.LENGTH_SHORT).show();
+
+        JsonObjectRequest request = new JsonObjectRequest(
+                Request.Method.GET, url, null,
+                response -> {
+                    String phone = response.optString("phone", "");
+                    Log.d("AddContact", "Server resolved phone: " + phone);
+                    launchAddContactIntent(phone, contactName, id);
+                },
+                error -> {
+                    Log.e("AddContact", "Server contact lookup failed: " + error);
+                    // Fallback: only usable if the id is a real @c.us number.
+                    launchAddContactIntent("", contactName, id);
+                }
+        );
+        request.setTag(TAG);
+        mQueue.add(request);
+    }
+
+    /** Lanza el intent de "Añadir contacto". Usa el teléfono resuelto por el servidor;
+     *  si está vacío, intenta extraerlo del id solo cuando es @c.us (número real). */
+    private void launchAddContactIntent(String serverPhone, String contactName, String id) {
+        String phoneNumber = serverPhone;
+
+        if (phoneNumber == null || phoneNumber.isEmpty()) {
+            // Solo @c.us contiene el número real; @lid NO.
+            if (id.contains("@c.us")) {
+                phoneNumber = "+" + id.replace("@c.us", "").replaceAll("[^0-9]", "");
+            }
         }
 
-        // Keep only digits and +
-        phoneNumber = phoneNumber.replaceAll("[^0-9+]", "");
-
-        // Ensure + prefix for international format
-        if (!phoneNumber.isEmpty() && !phoneNumber.startsWith("+")) {
-            phoneNumber = "+" + phoneNumber;
+        if (phoneNumber == null || phoneNumber.isEmpty() || phoneNumber.equals("+")) {
+            Toast.makeText(this, "Could not resolve a phone number for this contact", Toast.LENGTH_LONG).show();
+            return;
         }
 
-        // Debug logging
-        android.util.Log.d("AddContact", "ID: " + id + " -> Phone: " + phoneNumber);
+        Log.d("AddContact", "Final phone for intent: " + phoneNumber);
 
         Intent intent = new Intent(android.content.Intent.ACTION_INSERT);
         intent.setType(android.provider.ContactsContract.Contacts.CONTENT_TYPE);
@@ -515,6 +545,38 @@ public class ChatActivity extends AppCompatActivity {
         );
         imgRequest.setTag(TAG);
         mQueue.add(imgRequest);
+    }
+
+    private void showContactInfo() {
+        String contactId = selectedContact.getId();
+        String userId = whatsAppUser.getUser() + "@c.us";
+        String url = serverUrl + "/api/contact/" + userId + "/" + contactId;
+
+        JsonObjectRequest request = new JsonObjectRequest(
+                Request.Method.GET, url, null,
+                response -> {
+                    try {
+                        String name = response.optString("name", selectedContact.getName());
+                        String phone = response.optString("phone", contactId);
+                        String about = response.optString("about", "No status");
+
+                        AlertDialog.Builder builder = new AlertDialog.Builder(ChatActivity.this);
+                        builder.setTitle(name)
+                                .setMessage("Phone: " + phone + "\nStatus: " + about)
+                                .setPositiveButton("Close", null)
+                                .show();
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error parsing contact info: " + e.getMessage());
+                        Toast.makeText(ChatActivity.this, "Error loading contact info", Toast.LENGTH_SHORT).show();
+                    }
+                },
+                error -> {
+                    Log.e(TAG, "Error fetching contact info: " + error.getMessage());
+                    Toast.makeText(ChatActivity.this, "Could not load contact info", Toast.LENGTH_SHORT).show();
+                }
+        );
+        request.setTag(TAG);
+        mQueue.add(request);
     }
 
     private void retrieveAndDisplayMessages() {

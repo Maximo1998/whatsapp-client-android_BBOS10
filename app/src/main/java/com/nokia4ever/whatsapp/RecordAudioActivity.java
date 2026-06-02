@@ -95,9 +95,14 @@ public class RecordAudioActivity extends AppCompatActivity {
 
         mediaPlayer = new MediaPlayer();
 
-        // Initially, play and send buttons should be disabled/hidden
+        // Verify all buttons are found
+        if (ibUpload == null) Log.e(TAG, "ERROR: ib_upload button is NULL!");
+        else Log.d(TAG, "ib_upload button found");
+
+        // Play disabled until a recording exists. Send button is ALWAYS visible
+        // and enabled — the click handler validates that a recording exists.
+        // (Toggling visibility proved unreliable, so we keep it simple.)
         ibPlay.setEnabled(false);
-        ibUpload.setVisibility(View.GONE);
         tvStatus.setText("Press record to start");
 
         ibRecord.setOnClickListener(new View.OnClickListener() {
@@ -219,12 +224,12 @@ public class RecordAudioActivity extends AppCompatActivity {
                                             handler2.removeCallbacksAndMessages(null);
                                             ibRecord.setImageDrawable(ContextCompat.getDrawable(RecordAudioActivity.this,
                                                     R.drawable.ic_mic_none_black_24dp));
-                                            // Show play and send buttons after recording stops
+                                            // Enable play after recording stops (send is always enabled)
                                             ibPlay.setEnabled(true);
-                                            ibUpload.setVisibility(View.VISIBLE);
                                             tvStatus.setText("Recording complete - play or send");
                                         } catch (Exception e){
                                             Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
+                                            Log.e(TAG, "Error enabling buttons: " + e.getMessage());
                                         }
                                     }
                                 });
@@ -307,6 +312,16 @@ public class RecordAudioActivity extends AppCompatActivity {
         ibUpload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                // Validate there is a recording to send
+                if (isRecording) {
+                    Toast.makeText(RecordAudioActivity.this, "Stop recording first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (path == null || getRecordingFilePath() == null || !getRecordingFilePath().exists()) {
+                    Toast.makeText(RecordAudioActivity.this, "Record an audio first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 RequestQueue requestQueue = Volley.newRequestQueue(RecordAudioActivity.this);
                 Map<String, String> headers = new HashMap<String, String>();
                 String url = serverUrl + "/api/upload";
