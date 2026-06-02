@@ -61,11 +61,21 @@ public class ChatsListAdapter extends ArrayAdapter<Message> {
         TextView lblSenderName = view.findViewById(R.id.user_profile_name);
         TextView lblMessage    = view.findViewById(R.id.user_message);
         TextView lblDate       = view.findViewById(R.id.message_date);
+        TextView unreadBadge   = view.findViewById(R.id.unread_badge);
         CircleImageView profilePic = view.findViewById(R.id.users_profile_image);
 
         lblSenderName.setText(senderName);
         lblMessage.setText(message);
         lblDate.setText(createdAt);
+
+        // Show unread badge if there are unread messages
+        int unreadCount = item.getUnreadCount();
+        if (unreadCount > 0) {
+            unreadBadge.setVisibility(android.view.View.VISIBLE);
+            unreadBadge.setText(String.valueOf(unreadCount > 99 ? "99+" : unreadCount));
+        } else {
+            unreadBadge.setVisibility(android.view.View.GONE);
+        }
 
         // Cargar foto de perfil del contacto
         if (serverUrl != null && !serverUrl.isEmpty() && sender != null && !sender.isEmpty()) {

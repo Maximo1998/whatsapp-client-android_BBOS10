@@ -523,6 +523,14 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void retrieveAndDisplayMessages() {
+        // Reset unread count when viewing chat
+        String markReadUrl = serverUrl + "/api/mark-read/" + whatsAppUser.getUser() + "@c.us/" + selectedContact.getId();
+        mQueue.add(new com.android.volley.toolbox.JsonObjectRequest(
+                com.android.volley.Request.Method.POST, markReadUrl, null,
+                response -> { /* silent */ },
+                error -> { /* silent */ }
+        ));
+
         try {
             String url = serverUrl + "/api/messages/" + whatsAppUser.getUser() + "@c.us/" + selectedContact.getId();
             Log.d(TAG, "retrieveAndDisplayMessages: " + url);

@@ -14,6 +14,7 @@ public class Message implements Serializable {
     private String createdAt;
     private String chatType;
     private String mediaFilename;
+    private int unreadCount;
 
 
     public Message() {
@@ -108,7 +109,7 @@ public class Message implements Serializable {
 
     public String getMediaFilename() { return mediaFilename; }
     public void setMediaFilename(String f) { this.mediaFilename = f; }
-
-
+    public int getUnreadCount() { return unreadCount; }
+    public void setUnreadCount(int count) { this.unreadCount = count; }
 }
 
