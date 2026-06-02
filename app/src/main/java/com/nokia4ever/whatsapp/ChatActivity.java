@@ -310,7 +310,10 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_logout) {
+        if (item.getItemId() == R.id.action_add_contact) {
+            addContactToPhoneBook();
+            return true;
+        } else if (item.getItemId() == R.id.action_logout) {
             getSharedPreferences("UserPreferences", MODE_PRIVATE).edit()
                     .remove("user").remove("pushname").remove("platform")
                     .remove("last_chat_id").apply();
@@ -320,6 +323,24 @@ public class ChatActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void addContactToPhoneBook() {
+        String phoneNumber = selectedContact.getId().replaceAll("[^0-9]", "");
+        String contactName = selectedContact.getName();
+
+        Intent intent = new Intent(android.content.Intent.ACTION_INSERT);
+        intent.setType(android.provider.ContactsContract.Contacts.CONTENT_TYPE);
+        intent.putExtra(android.provider.ContactsContract.Intents.Insert.PHONE, phoneNumber);
+        intent.putExtra(android.provider.ContactsContract.Intents.Insert.NAME, contactName);
+        intent.putExtra(android.provider.ContactsContract.Intents.Insert.PHONE_TYPE,
+                android.provider.ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE);
+
+        try {
+            startActivity(intent);
+        } catch (android.content.ActivityNotFoundException e) {
+            Toast.makeText(this, "Contacts app not available", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showContactProfileDialog() {

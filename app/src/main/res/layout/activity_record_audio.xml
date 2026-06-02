@@ -1,72 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
     tools:context=".RecordAudioActivity">
 
+    <!-- Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Record Audio"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="@color/colorPrimaryDark"
+        android:layout_marginBottom="24dp"
+        android:gravity="center" />
+
+    <!-- Spacer -->
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Visualizer -->
     <com.visualizer.amplitude.AudioRecordView
         android:id="@+id/audioRecordView"
-        android:layout_width="256dp"
-        android:layout_height="64dp"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
         app:chunkAlignTo="bottom"
         app:chunkRoundedCorners="true"
         app:chunkSoftTransition="true"
         app:chunkColor="@android:color/holo_blue_dark"
-        app:chunkSpace="1dp"
-        app:chunkWidth="2dp"
-        app:chunkMaxHeight="48dp"
-        app:chunkMinHeight="2dp"
+        app:chunkSpace="2dp"
+        app:chunkWidth="3dp"
+        app:chunkMaxHeight="64dp"
+        app:chunkMinHeight="4dp"
         app:direction="leftToRight"
-        android:layout_centerHorizontal="true"
-        android:layout_above="@+id/tv_time"
+        android:layout_marginBottom="24dp"
         />
 
+    <!-- Timer -->
     <TextView
         android:id="@+id/tv_time"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="00:00"
-        android:textAlignment="center"
-        android:textSize="70dp"
+        android:gravity="center"
+        android:textSize="48sp"
         android:textColor="@android:color/black"
-        android:layout_above="@+id/ib_record"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="32dp"
         />
 
-    <ImageView
-        android:id="@+id/ib_record"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="40dp"
-        android:src="@drawable/ic_mic_none_black_24dp"
-        android:tint="@android:color/holo_red_dark"
-        />
+    <!-- Control Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="24dp">
 
-    <ImageView
-        android:id="@+id/ib_play"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="75dp"
-        android:layout_marginStart="20dp"
-        android:layout_toEndOf="@+id/ib_record"
-        android:src="@drawable/ic_play_arrow_black_24dp"
-        />
+        <!-- Cancel Button -->
+        <ImageButton
+            android:id="@+id/ib_cancel"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:background="@drawable/rounded_button_cancel"
+            android:scaleType="centerInside"
+            android:contentDescription="Cancel"
+            android:layout_marginEnd="16dp" />
 
-    <ImageView
+        <!-- Main Record Button -->
+        <ImageButton
+            android:id="@+id/ib_record"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@drawable/ic_mic_none_black_24dp"
+            android:background="@drawable/rounded_button_record"
+            android:scaleType="centerInside"
+            android:tint="@android:color/white"
+            android:contentDescription="Record" />
+
+        <!-- Play Button -->
+        <ImageButton
+            android:id="@+id/ib_play"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:src="@drawable/ic_play_arrow_black_24dp"
+            android:background="@drawable/rounded_button_play"
+            android:scaleType="centerInside"
+            android:contentDescription="Play"
+            android:layout_marginStart="16dp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Send Button (Only when recording done) -->
+    <Button
         android:id="@+id/ib_upload"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="75dp"
-        android:layout_marginStart="20dp"
-        android:layout_toStartOf="@+id/ib_record"
-        android:src="@drawable/ic_file_upload_black_24dp"
-        />
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="Send Audio"
+        android:textSize="16sp"
+        android:background="@drawable/buttons"
+        android:textColor="@android:color/white"
+        android:visibility="gone"
+        android:layout_marginBottom="16dp" />
 
-</RelativeLayout>
+    <!-- Status Text -->
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Press record to start"
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray"
+        android:gravity="center" />
+
+    <!-- Spacer -->
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+</LinearLayout>
