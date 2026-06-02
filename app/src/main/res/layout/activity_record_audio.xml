@@ -16,14 +16,19 @@
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="@color/colorPrimaryDark"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="16dp"
         android:gravity="center" />
 
-    <!-- Spacer -->
-    <Space
+    <!-- Status Text (Shows instructions) -->
+    <TextView
+        android:id="@+id/tv_status"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_height="wrap_content"
+        android:text="Press record to start"
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
 
     <!-- Visualizer -->
     <com.visualizer.amplitude.AudioRecordView
@@ -39,8 +44,7 @@
         app:chunkMaxHeight="64dp"
         app:chunkMinHeight="4dp"
         app:direction="leftToRight"
-        android:layout_marginBottom="24dp"
-        />
+        android:layout_marginBottom="16dp" />
 
     <!-- Timer -->
     <TextView
@@ -52,16 +56,15 @@
         android:textSize="48sp"
         android:textColor="@android:color/black"
         android:fontFamily="monospace"
-        android:layout_marginBottom="32dp"
-        />
+        android:layout_marginBottom="24dp" />
 
-    <!-- Control Buttons -->
+    <!-- Control Buttons (Record, Cancel, Play) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginBottom="24dp">
+        android:layout_marginBottom="16dp">
 
         <!-- Cancel Button -->
         <ImageButton
@@ -97,35 +100,17 @@
             android:layout_marginStart="16dp" />
     </LinearLayout>
 
-    <!-- Send Button (Only when recording done) -->
+    <!-- Send Button (Visible when recording is done) -->
     <Button
         android:id="@+id/ib_upload"
         android:layout_width="match_parent"
-        android:layout_height="55dp"
-        android:text="Send Audio"
-        android:textSize="16sp"
+        android:layout_height="60dp"
+        android:text="✓ Send Audio"
+        android:textSize="18sp"
         android:textStyle="bold"
-        android:background="@drawable/buttons"
+        android:background="@android:color/holo_green_dark"
         android:textColor="@android:color/white"
         android:visibility="gone"
-        android:layout_marginBottom="16dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp" />
-
-    <!-- Status Text -->
-    <TextView
-        android:id="@+id/tv_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Press record to start"
-        android:textSize="14sp"
-        android:textColor="@android:color/darker_gray"
-        android:gravity="center" />
-
-    <!-- Spacer -->
-    <Space
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_marginBottom="16dp" />
 
 </LinearLayout>

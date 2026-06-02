@@ -352,16 +352,27 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void addContactToPhoneBook() {
-        // Extract ONLY the phone number from ID (remove @c.us, @lid, etc.)
         String id = selectedContact.getId();
-        // Remove everything after @ symbol (the domain part)
-        String phone = id.contains("@") ? id.substring(0, id.indexOf("@")) : id;
-        // Remove any non-digit characters except +
-        String phoneNumber = phone.replaceAll("[^0-9+]", "");
-        if (!phoneNumber.startsWith("+") && !phoneNumber.isEmpty()) {
+        String contactName = selectedContact.getName();
+
+        // Extract phone number: remove @c.us, @lid, @g.us suffixes and non-digit chars
+        String phoneNumber = id;
+
+        // Remove @xxx suffixes
+        if (phoneNumber.contains("@")) {
+            phoneNumber = phoneNumber.substring(0, phoneNumber.indexOf("@"));
+        }
+
+        // Keep only digits and +
+        phoneNumber = phoneNumber.replaceAll("[^0-9+]", "");
+
+        // Ensure + prefix for international format
+        if (!phoneNumber.isEmpty() && !phoneNumber.startsWith("+")) {
             phoneNumber = "+" + phoneNumber;
         }
-        String contactName = selectedContact.getName();
+
+        // Debug logging
+        android.util.Log.d("AddContact", "ID: " + id + " -> Phone: " + phoneNumber);
 
         Intent intent = new Intent(android.content.Intent.ACTION_INSERT);
         intent.setType(android.provider.ContactsContract.Contacts.CONTENT_TYPE);
