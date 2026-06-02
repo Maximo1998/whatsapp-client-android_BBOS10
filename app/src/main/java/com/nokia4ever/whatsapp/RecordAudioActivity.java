@@ -95,6 +95,11 @@ public class RecordAudioActivity extends AppCompatActivity {
 
         mediaPlayer = new MediaPlayer();
 
+        // Initially, play and send buttons should be disabled/hidden
+        ibPlay.setEnabled(false);
+        ibUpload.setVisibility(View.GONE);
+        tvStatus.setText("Press record to start");
+
         ibRecord.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -214,6 +219,10 @@ public class RecordAudioActivity extends AppCompatActivity {
                                             handler2.removeCallbacksAndMessages(null);
                                             ibRecord.setImageDrawable(ContextCompat.getDrawable(RecordAudioActivity.this,
                                                     R.drawable.ic_mic_none_black_24dp));
+                                            // Show play and send buttons after recording stops
+                                            ibPlay.setEnabled(true);
+                                            ibUpload.setVisibility(View.VISIBLE);
+                                            tvStatus.setText("Recording complete - play or send");
                                         } catch (Exception e){
                                             Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
                                         }
@@ -233,6 +242,11 @@ public class RecordAudioActivity extends AppCompatActivity {
         ibPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                // Don't allow play while recording
+                if (isRecording) {
+                    Toast.makeText(RecordAudioActivity.this, "Stop recording first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 if (!isPlaying) {
                     if (path != null) {
                         try {

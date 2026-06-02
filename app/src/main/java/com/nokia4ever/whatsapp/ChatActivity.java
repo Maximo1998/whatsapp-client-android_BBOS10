@@ -242,6 +242,23 @@ public class ChatActivity extends AppCompatActivity {
                 }
 
                 progressDialog.show();
+
+                // Optimistic UI: mostrar foto localmente mientras se envía
+                Message optimisticPhoto = new Message(
+                        "photo_" + System.currentTimeMillis(),
+                        whatsAppUser.getUser() + "@c.us",
+                        selectedContact.getId(),
+                        "",
+                        0,
+                        whatsAppUser.getPushname(),
+                        getCurrentTimestamp(),
+                        getCurrentTimestamp(),
+                        "image"
+                );
+                currentMessages.add(optimisticPhoto);
+                adapter.notifyDataSetChanged();
+                mListView.post(() -> mListView.setSelection(adapter.getCount() - 1));
+
                 RequestQueue requestQueue = mQueue;
                 Map<String, String> headers = new HashMap<>();
                 String url = serverUrl + "/api/upload";
@@ -351,10 +368,13 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void addContactToPhoneBook() {
-        // Extract clean phone number from ID (remove @c.us, @lid, etc.)
+        // Extract ONLY the phone number from ID (remove @c.us, @lid, etc.)
         String id = selectedContact.getId();
-        String phoneNumber = id.replaceAll("[^0-9+]", "");
-        if (!phoneNumber.startsWith("+")) {
+        // Remove everything after @ symbol (the domain part)
+        String phone = id.contains("@") ? id.substring(0, id.indexOf("@")) : id;
+        // Remove any non-digit characters except +
+        String phoneNumber = phone.replaceAll("[^0-9+]", "");
+        if (!phoneNumber.startsWith("+") && !phoneNumber.isEmpty()) {
             phoneNumber = "+" + phoneNumber;
         }
         String contactName = selectedContact.getName();
