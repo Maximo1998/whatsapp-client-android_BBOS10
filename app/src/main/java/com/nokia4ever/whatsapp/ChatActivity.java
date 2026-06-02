@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import java.io.File;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
