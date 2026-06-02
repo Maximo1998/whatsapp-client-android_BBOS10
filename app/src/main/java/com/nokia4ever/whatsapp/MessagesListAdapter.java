@@ -24,6 +24,15 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
     private int resource;
     private WhatsAppUser whatsAppUser;
     private String serverUrl;
+    private OnImageClickListener imageClickListener;
+
+    public interface OnImageClickListener {
+        void onImageClick(String imageUrl);
+    }
+
+    public void setImageClickListener(OnImageClickListener listener) {
+        this.imageClickListener = listener;
+    }
 
     public MessagesListAdapter(Context context, int resource, ArrayList<Message> objects,
                                WhatsAppUser whatsAppUser, String serverUrl) {
@@ -96,7 +105,6 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
                 receiverMessageText.setText(label + message + "\n" + createdAt);
             }
         } else if (chatType.equals("image")) {
-            // Usa mediaFilename si está disponible, fallback a _id.jpg
             String filename = (mediaFilename != null && !mediaFilename.isEmpty())
                     ? mediaFilename : _id + ".jpg";
             String imageUrl = serverUrl + "/api/mediafile/" + filename;
@@ -105,10 +113,20 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
                 senderMessageImage.setVisibility(View.VISIBLE);
                 Picasso.with(context).load(imageUrl)
                         .placeholder(R.drawable.profile_image).into(senderMessageImage);
+                senderMessageImage.setOnClickListener(v -> {
+                    if (imageClickListener != null) {
+                        imageClickListener.onImageClick(imageUrl);
+                    }
+                });
             } else {
                 receiverMessageImage.setVisibility(View.VISIBLE);
                 Picasso.with(context).load(imageUrl)
                         .placeholder(R.drawable.profile_image).into(receiverMessageImage);
+                receiverMessageImage.setOnClickListener(v -> {
+                    if (imageClickListener != null) {
+                        imageClickListener.onImageClick(imageUrl);
+                    }
+                });
             }
         }
 

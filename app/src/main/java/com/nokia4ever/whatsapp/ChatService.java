@@ -155,8 +155,15 @@ public class ChatService extends Service {
                                 if (chatsResponse.getChats().size() > 0) {
                                     Message chat = chatsResponse.getChats().get(0);
                                     if (!lastChatId.equals(chat.getId())) {
+                                        // Solo notificar si el mensaje es de OTROS (no de nosotros)
+                                        String sender = chat.getSender();
+                                        String myNumber = whatsAppUser.getUser();
+                                        boolean isFromMe = sender.contains(myNumber) ||
+                                                          sender.equalsIgnoreCase("Me") ||
+                                                          sender.equalsIgnoreCase("me");
+
                                         boolean appInBackground = sharedPreferences.getBoolean("app_in_background", false);
-                                        if (!lastChatId.isEmpty() && appInBackground) {
+                                        if (!lastChatId.isEmpty() && appInBackground && !isFromMe) {
                                             showMessageNotification(chat.getSenderName(), chat.getMessage());
                                         }
                                         lastChatId = chat.getId();

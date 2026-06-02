@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Novel Messenger</string>
-    <string name="notification_channel_name">Novel Messenger Service</string>
+    <string name="app_name">Blackberry Messenger</string>
+    <string name="notification_channel_name">Blackberry Messenger Service</string>
     <string name="notification_service_text">Running in background</string>
-
+    <string name="login_footer">Bring back BB\n(a fork of Novel Professor)</string>
 </resources>

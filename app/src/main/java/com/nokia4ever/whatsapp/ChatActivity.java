@@ -293,6 +293,9 @@ public class ChatActivity extends AppCompatActivity {
                 R.layout.custom_messages_layout, currentMessages, whatsAppUser, serverUrl);
         mListView.setAdapter(adapter);
 
+        // Listener para abrir imágenes fullscreen
+        adapter.setImageClickListener(imageUrl -> showFullscreenImage(imageUrl));
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
         builder.setView(R.layout.layout_loading_dialog);
@@ -426,6 +429,26 @@ public class ChatActivity extends AppCompatActivity {
             Log.e(TAG, ex.getMessage(), ex);
             Toast.makeText(getApplicationContext(), "Error sending message", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void showFullscreenImage(String imageUrl) {
+        // Descargar la imagen en segundo plano
+        com.android.volley.toolbox.ImageRequest imgRequest = new com.android.volley.toolbox.ImageRequest(
+                imageUrl,
+                response -> {
+                    // Mostrar diálogo fullscreen con la imagen descargada
+                    ImageViewerDialogFragment dialog = ImageViewerDialogFragment.newInstance(response);
+                    dialog.show(getSupportFragmentManager(), "image_viewer");
+                },
+                0, 0,
+                android.graphics.Bitmap.Config.RGB_565,
+                error -> {
+                    Toast.makeText(ChatActivity.this, "Could not load image", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Image load error: " + error.getMessage());
+                }
+        );
+        imgRequest.setTag(TAG);
+        mQueue.add(imgRequest);
     }
 
     private void retrieveAndDisplayMessages() {
