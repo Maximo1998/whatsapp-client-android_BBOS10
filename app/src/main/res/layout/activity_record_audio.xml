@@ -101,13 +101,16 @@
     <Button
         android:id="@+id/ib_upload"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
+        android:layout_height="55dp"
         android:text="Send Audio"
         android:textSize="16sp"
+        android:textStyle="bold"
         android:background="@drawable/buttons"
         android:textColor="@android:color/white"
         android:visibility="gone"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp" />
 
     <!-- Status Text -->
     <TextView

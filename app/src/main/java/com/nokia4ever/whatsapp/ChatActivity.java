@@ -243,22 +243,6 @@ public class ChatActivity extends AppCompatActivity {
 
                 progressDialog.show();
 
-                // Optimistic UI: mostrar foto localmente mientras se envía
-                Message optimisticPhoto = new Message(
-                        "photo_" + System.currentTimeMillis(),
-                        whatsAppUser.getUser() + "@c.us",
-                        selectedContact.getId(),
-                        "",
-                        0,
-                        whatsAppUser.getPushname(),
-                        getCurrentTimestamp(),
-                        getCurrentTimestamp(),
-                        "image"
-                );
-                currentMessages.add(optimisticPhoto);
-                adapter.notifyDataSetChanged();
-                mListView.post(() -> mListView.setSelection(adapter.getCount() - 1));
-
                 RequestQueue requestQueue = mQueue;
                 Map<String, String> headers = new HashMap<>();
                 String url = serverUrl + "/api/upload";
