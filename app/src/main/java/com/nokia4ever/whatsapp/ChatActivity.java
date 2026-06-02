@@ -138,7 +138,7 @@ public class ChatActivity extends AppCompatActivity {
         btnSendFiles.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                CharSequence[] options = new CharSequence[]{"Gallery", "Camera", "Record Audio"};
+                CharSequence[] options = new CharSequence[]{"Emoji", "Gallery", "Camera", "Record Audio"};
                 AlertDialog.Builder builder = new AlertDialog.Builder(ChatActivity.this);
                 builder.setTitle("Make your selection");
                 builder.setItems(options, new DialogInterface.OnClickListener() {
@@ -146,12 +146,15 @@ public class ChatActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialogInterface, int i) {
                         switch (i) {
                             case 0:
+                                showEmojiPicker();
+                                break;
+                            case 1:
                                 Intent intent = new Intent();
                                 intent.setAction(Intent.ACTION_GET_CONTENT);
                                 intent.setType("image/*");
                                 startActivityForResult(Intent.createChooser(intent, "Select Image"), GALLERY_REQUEST);
                                 break;
-                            case 1:
+                            case 2:
                                 Intent intent2 = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                                 // Save photo to file instead of getting thumbnail
                                 File photoFile = createImageFile();
@@ -161,7 +164,7 @@ public class ChatActivity extends AppCompatActivity {
                                 }
                                 startActivityForResult(intent2, CAMERA_REQUEST);
                                 break;
-                            case 2:
+                            case 3:
                                 Intent intent3 = new Intent(ChatActivity.this, RecordAudioActivity.class);
                                 intent3.putExtra("ServerUrl", serverUrl);
                                 intent3.putExtra("WhatsAppUser", whatsAppUser);
@@ -555,6 +558,49 @@ public class ChatActivity extends AppCompatActivity {
         );
         imgRequest.setTag(TAG);
         mQueue.add(imgRequest);
+    }
+
+    /** Picker de emojis: rejilla de emojis comunes; al tocar uno se inserta en el
+     *  campo de texto y se envía como texto normal (WhatsApp los trata como texto). */
+    private void showEmojiPicker() {
+        final String[] emojis = {
+                "😀","😁","😂","🤣","😅","😊","😍","😘","😎","🤩","🥳","😜",
+                "🤔","😴","😇","🙄","😏","😬","😢","😭","😡","🥺","😱","🤯",
+                "👍","👎","👌","🙏","👏","💪","🤝","✌️","🫶","👋","🤙","🖐️",
+                "❤️","🧡","💛","💚","💙","💜","🖤","💔","💕","✨","⭐","🔥",
+                "🎉","🎂","🎁","💰","☕","🍺","🍷","🍕","🍔","🍫","⚽","🏀",
+                "🚗","✈️","🏠","☀️","🌙","🌧️","⏰","📞","💬","✅","❌","❓"
+        };
+
+        android.widget.GridView grid = new android.widget.GridView(this);
+        grid.setNumColumns(6);
+        int pad = (int) (8 * getResources().getDisplayMetrics().density);
+        grid.setPadding(pad, pad, pad, pad);
+        grid.setAdapter(new android.widget.ArrayAdapter<String>(
+                this, android.R.layout.simple_list_item_1, emojis) {
+            @Override
+            public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                TextView tv = (TextView) super.getView(position, convertView, parent);
+                tv.setGravity(android.view.Gravity.CENTER);
+                tv.setTextSize(26);
+                tv.setPadding(0, pad, 0, pad);
+                return tv;
+            }
+        });
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Emoji")
+                .setView(grid)
+                .setNegativeButton("Close", null)
+                .create();
+
+        grid.setOnItemClickListener((parent, v, position, id) -> {
+            if (txtMessage != null) {
+                txtMessage.append(emojis[position]);
+            }
+        });
+
+        dialog.show();
     }
 
     private void showContactInfo() {

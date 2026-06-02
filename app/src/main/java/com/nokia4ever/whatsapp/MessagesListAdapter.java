@@ -101,9 +101,11 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
                 String label = sender.contains("@g.us") ? senderName + "\n" : "";
                 receiverMessageText.setText(label + message + "\n" + createdAt);
             }
-        } else if (chatType.equals("image")) {
+        } else if (chatType.equals("image") || chatType.equals("sticker")) {
+            // Los stickers llegan como webp; el servidor los guarda igual que una imagen.
+            String ext = chatType.equals("sticker") ? ".webp" : ".jpg";
             String filename = (mediaFilename != null && !mediaFilename.isEmpty())
-                    ? mediaFilename : _id + ".jpg";
+                    ? mediaFilename : _id + ext;
             String imageUrl = serverUrl + "/api/mediafile/" + filename;
 
             if (isMine) {
