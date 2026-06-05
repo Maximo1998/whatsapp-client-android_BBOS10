@@ -76,7 +76,13 @@ public class ChatActivity extends AppCompatActivity {
     private Runnable timerRunnable;
     private WhatsAppUser whatsAppUser;
     private String lastMessageId = "";
+    private String lastReactionSignature = "";
     private SharedPreferences sharedPreferences;
+
+    // Estado de "responder" (reply/cita): mensaje al que se está respondiendo.
+    private Message replyingTo;
+    private View replyBar;
+    private TextView replyPreviewText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,6 +127,17 @@ public class ChatActivity extends AppCompatActivity {
                     intent.putExtra("WhatsAppUser", whatsAppUser);
                     startActivity(intent);
                 }
+            }
+        });
+
+        // Mantener pulsado un mensaje → menú: Responder / Reaccionar.
+        mListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int position, long id) {
+                Message selectedMessage = (Message) adapterView.getItemAtPosition(position);
+                if (selectedMessage == null) return false;
+                showMessageActions(selectedMessage);
+                return true;
             }
         });
 
@@ -239,19 +256,23 @@ public class ChatActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if ((requestCode == GALLERY_REQUEST || requestCode == CAMERA_REQUEST) && resultCode == RESULT_OK) {
             try {
+                // Decodificar con muestreo (inSampleSize) para no cargar la foto a
+                // resolución completa: el Q20 tiene poco heap y un JPEG de cámara de
+                // varios MP en ARGB_8888 disparaba OutOfMemoryError (cierre de la app).
                 Bitmap photo;
                 if (requestCode == GALLERY_REQUEST) {
-                    final Uri imageUri = data.getData();
-                    final InputStream imageStream = getContentResolver().openInputStream(imageUri);
-                    photo = BitmapFactory.decodeStream(imageStream);
+                    photo = decodeSampledFromUri(data.getData(), 1600);
                 } else {
-                    // Load photo from file at full resolution
                     if (cameraPhotoPath != null) {
-                        photo = BitmapFactory.decodeFile(cameraPhotoPath);
+                        photo = decodeSampledFromFile(cameraPhotoPath, 1600);
                     } else {
                         Toast.makeText(this, "Camera photo save failed", Toast.LENGTH_SHORT).show();
                         return;
                     }
+                }
+                if (photo == null) {
+                    Toast.makeText(this, "Could not load image", Toast.LENGTH_SHORT).show();
+                    return;
                 }
 
                 progressDialog.show();
@@ -288,8 +309,44 @@ public class ChatActivity extends AppCompatActivity {
 
     private byte[] getByteImage(Bitmap bm) {
         ByteArrayOutputStream ba = new ByteArrayOutputStream();
-        bm.compress(Bitmap.CompressFormat.JPEG, 100, ba);
+        // Calidad 85: imperceptible vs 100 pero mucho menos memoria/red.
+        bm.compress(Bitmap.CompressFormat.JPEG, 85, ba);
         return ba.toByteArray();
+    }
+
+    /** Calcula inSampleSize (potencia de 2) para que la imagen no supere maxDim px. */
+    private int calculateInSampleSize(BitmapFactory.Options options, int maxDim) {
+        int h = options.outHeight, w = options.outWidth;
+        int sample = 1;
+        while ((h / sample) > maxDim || (w / sample) > maxDim) sample *= 2;
+        return sample;
+    }
+
+    /** Decodifica una imagen de un Uri con muestreo, sin cargarla a resolución completa. */
+    private Bitmap decodeSampledFromUri(Uri uri, int maxDim) throws FileNotFoundException {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        InputStream s1 = getContentResolver().openInputStream(uri);
+        BitmapFactory.decodeStream(s1, null, bounds);
+        try { if (s1 != null) s1.close(); } catch (Exception ignored) {}
+
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inSampleSize = calculateInSampleSize(bounds, maxDim);
+        InputStream s2 = getContentResolver().openInputStream(uri);
+        Bitmap bmp = BitmapFactory.decodeStream(s2, null, opts);
+        try { if (s2 != null) s2.close(); } catch (Exception ignored) {}
+        return bmp;
+    }
+
+    /** Decodifica una imagen de un archivo con muestreo, sin cargarla a resolución completa. */
+    private Bitmap decodeSampledFromFile(String path, int maxDim) {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(path, bounds);
+
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inSampleSize = calculateInSampleSize(bounds, maxDim);
+        return BitmapFactory.decodeFile(path, opts);
     }
 
     private void initializeFields() {
@@ -334,6 +391,11 @@ public class ChatActivity extends AppCompatActivity {
 
         // Listener para abrir imágenes fullscreen
         adapter.setImageClickListener(imageUrl -> showFullscreenImage(imageUrl));
+
+        // Barra de "respondiendo a…": oculta hasta que se elige responder a un mensaje.
+        replyBar         = findViewById(R.id.reply_bar);
+        replyPreviewText = findViewById(R.id.reply_preview_text);
+        findViewById(R.id.reply_cancel_btn).setOnClickListener(v -> clearReply());
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
@@ -477,6 +539,11 @@ public class ChatActivity extends AppCompatActivity {
         final String messageText = txtMessage.getText().toString().trim();
         txtMessage.setText("");
 
+        // Capturar (y limpiar) el estado de respuesta antes de enviar.
+        final Message reply = replyingTo;
+        final String quotedMessageId = (reply != null) ? reply.getWaId() : null;
+        clearReply();
+
         // Optimistic UI: añadir el mensaje al chat inmediatamente
         Message optimistic = new Message(
                 "pending_" + System.currentTimeMillis(),
@@ -489,6 +556,10 @@ public class ChatActivity extends AppCompatActivity {
                 getCurrentTimestamp(),
                 "chat"
         );
+        if (reply != null) {
+            optimistic.setQuotedMessage(reply.getMessage());
+            optimistic.setQuotedAuthor(reply.getSenderName());
+        }
         currentMessages.add(optimistic);
         adapter.notifyDataSetChanged();
         mListView.post(new Runnable() {
@@ -508,6 +579,9 @@ public class ChatActivity extends AppCompatActivity {
                 jsonRequest.put("sender", whatsAppUser.getUser());
                 jsonRequest.put("receiver", selectedContact.getId());
                 jsonRequest.put("message", messageText);
+                if (quotedMessageId != null && !quotedMessageId.isEmpty()) {
+                    jsonRequest.put("quotedMessageId", quotedMessageId);
+                }
             } catch (JSONException ex) {
                 Toast.makeText(getApplicationContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
                 return;
@@ -540,6 +614,101 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    /** Menú al mantener pulsado un mensaje: Responder o Reaccionar. */
+    private void showMessageActions(final Message message) {
+        CharSequence[] options = new CharSequence[]{"Reply", "React"};
+        new AlertDialog.Builder(this)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0)      startReply(message);
+                    else if (which == 1) showReactionPicker(message);
+                })
+                .show();
+    }
+
+    /** Activa el modo respuesta: muestra la barra de cita sobre el campo de texto. */
+    private void startReply(Message message) {
+        replyingTo = message;
+        String author = message.getSenderName();
+        boolean mine = message.getSender() != null
+                && message.getSender().replace("@c.us", "").equals(whatsAppUser.getUser());
+        if (mine || author == null || author.isEmpty()) author = mine ? "You" : "";
+        String preview = message.getMessage() != null ? message.getMessage() : "";
+        String label = author.isEmpty() ? preview : author + ": " + preview;
+        replyPreviewText.setText("↪ " + label);
+        replyBar.setVisibility(View.VISIBLE);
+        txtMessage.requestFocus();
+    }
+
+    /** Cancela el modo respuesta y oculta la barra. */
+    private void clearReply() {
+        replyingTo = null;
+        if (replyBar != null) replyBar.setVisibility(View.GONE);
+    }
+
+    /** Picker compacto de reacciones; al elegir, envía la reacción al servidor. */
+    private void showReactionPicker(final Message message) {
+        if (message.getWaId() == null || message.getWaId().isEmpty()) {
+            Toast.makeText(this, "Can't react to this message yet", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        // Sin U+FE0F (ver nota en showEmojiPicker) para que se vean en BB10.
+        final String[] reactions = {"👍", "❤", "😂", "😮", "😢", "🙏", "🔥", "👏"};
+
+        android.widget.GridView grid = new android.widget.GridView(this);
+        grid.setNumColumns(4);
+        int pad = (int) (8 * getResources().getDisplayMetrics().density);
+        grid.setPadding(pad, pad, pad, pad);
+        grid.setAdapter(new android.widget.ArrayAdapter<String>(
+                this, android.R.layout.simple_list_item_1, reactions) {
+            @Override
+            public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                TextView tv = (TextView) super.getView(position, convertView, parent);
+                tv.setGravity(android.view.Gravity.CENTER);
+                tv.setTextSize(28);
+                tv.setPadding(0, pad, 0, pad);
+                return tv;
+            }
+        });
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("React")
+                .setView(grid)
+                .setNegativeButton("Close", null)
+                .create();
+
+        grid.setOnItemClickListener((parent, v, position, id) -> {
+            sendReaction(message, reactions[position]);
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    /** Envía una reacción (emoji) a un mensaje vía POST /api/react. */
+    private void sendReaction(final Message message, final String emoji) {
+        // Reflejar de inmediato en la UI (optimista).
+        message.setReaction(emoji);
+        adapter.notifyDataSetChanged();
+
+        try {
+            String url = serverUrl + "/api/react";
+            JSONObject body = new JSONObject();
+            body.put("sender", whatsAppUser.getUser());
+            body.put("waId", message.getWaId());
+            body.put("emoji", emoji);
+
+            JsonObjectRequest request = new JsonObjectRequest(
+                    Request.Method.POST, url, body,
+                    response -> Log.i(TAG, "react OK"),
+                    error -> Toast.makeText(ChatActivity.this, "Could not send reaction", Toast.LENGTH_SHORT).show()
+            );
+            request.setTag(TAG);
+            mQueue.add(request);
+        } catch (JSONException ex) {
+            Log.e(TAG, "react json error: " + ex.getMessage());
+        }
+    }
+
     private void showFullscreenImage(String imageUrl) {
         // Descargar la imagen en segundo plano
         com.android.volley.toolbox.ImageRequest imgRequest = new com.android.volley.toolbox.ImageRequest(
@@ -563,13 +732,17 @@ public class ChatActivity extends AppCompatActivity {
     /** Picker de emojis: rejilla de emojis comunes; al tocar uno se inserta en el
      *  campo de texto y se envía como texto normal (WhatsApp los trata como texto). */
     private void showEmojiPicker() {
+        // Set curado para el runtime viejo de BB10 (≈Android 4.3): solo emoji del
+        // bloque clásico (Unicode 6.0/6.1) que la fuente del sistema sí dibuja, y
+        // SIN el selector de variación U+FE0F (que en Android viejo provoca "tofu"
+        // en símbolos como ❤ ✌ ✈ ☀ ⏰ ⭐ ✅ ❌; con el codepoint base sí se ven).
         final String[] emojis = {
-                "😀","😁","😂","🤣","😅","😊","😍","😘","😎","🤩","🥳","😜",
-                "🤔","😴","😇","🙄","😏","😬","😢","😭","😡","🥺","😱","🤯",
-                "👍","👎","👌","🙏","👏","💪","🤝","✌️","🫶","👋","🤙","🖐️",
-                "❤️","🧡","💛","💚","💙","💜","🖤","💔","💕","✨","⭐","🔥",
-                "🎉","🎂","🎁","💰","☕","🍺","🍷","🍕","🍔","🍫","⚽","🏀",
-                "🚗","✈️","🏠","☀️","🌙","🌧️","⏰","📞","💬","✅","❌","❓"
+                "😀","😁","😂","😃","😄","😅","😆","😉","😊","😋","😍","😘",
+                "😜","😝","😎","😏","😌","😔","😴","😪","😢","😭","😡","😱",
+                "👍","👎","👌","✌","☝","👏","🙌","🙏","💪","👋","✊","✋",
+                "❤","💛","💚","💙","💜","💔","💕","💖","💗","💘","💝","💋",
+                "✨","⭐","🔥","⚡","☀","🌙","☕","🍺","🍷","🍕","🍔","🍫",
+                "⚽","🏀","🚗","✈","🏠","📞","💬","🎉","🎂","🎁","💰","✅"
         };
 
         android.widget.GridView grid = new android.widget.GridView(this);
@@ -663,16 +836,27 @@ public class ChatActivity extends AppCompatActivity {
                                 if (messagesList != null && messagesList.size() > 0) {
                                     // El servidor devuelve DESC (más nuevo primero)
                                     Message newest = messagesList.get(0);
-                                    if (!lastMessageId.equals(newest.getId())) {
+                                    // Las reacciones no cambian el id del mensaje más nuevo,
+                                    // así que detectamos su cambio con una firma aparte.
+                                    String reactionSig = buildReactionSignature(messagesList);
+                                    boolean newMessage      = !lastMessageId.equals(newest.getId());
+                                    boolean reactionsChanged = !lastReactionSignature.equals(reactionSig);
+
+                                    if (newMessage || reactionsChanged) {
                                         lastMessageId = newest.getId();
+                                        lastReactionSignature = reactionSig;
                                         Collections.reverse(messagesList);
                                         adapter.update(messagesList);
-                                        mListView.post(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                mListView.setSelection(adapter.getCount() - 1);
-                                            }
-                                        });
+                                        // Solo auto-scroll al fondo cuando llega un mensaje nuevo
+                                        // (no al cambiar una reacción, para no dar saltos).
+                                        if (newMessage) {
+                                            mListView.post(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    mListView.setSelection(adapter.getCount() - 1);
+                                                }
+                                            });
+                                        }
                                     }
                                 }
                             } catch (Exception ex) {
@@ -696,5 +880,18 @@ public class ChatActivity extends AppCompatActivity {
 
     private String getCurrentTimestamp() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+    }
+
+    /** Firma ligera del estado de reacciones (id+emoji por mensaje) para detectar
+     *  cambios de reacción aunque no llegue ningún mensaje nuevo. */
+    private String buildReactionSignature(ArrayList<Message> messages) {
+        StringBuilder sb = new StringBuilder();
+        for (Message m : messages) {
+            String r = m.getReaction();
+            if (r != null && !r.isEmpty()) {
+                sb.append(m.getId()).append('=').append(r).append(';');
+            }
+        }
+        return sb.toString();
     }
 }
