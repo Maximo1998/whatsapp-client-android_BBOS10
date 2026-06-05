@@ -652,7 +652,8 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
         // Sin U+FE0F (ver nota en showEmojiPicker) para que se vean en BB10.
-        final String[] reactions = {"👍", "❤", "😂", "😮", "😢", "🙏", "🔥", "👏"};
+        // 😲 (U+1F632, 6.0) en vez de 😮 (U+1F62E, 6.1, que salía invisible en BB10).
+        final String[] reactions = {"👍", "❤", "😂", "😲", "😢", "🙏", "🔥", "👏"};
 
         android.widget.GridView grid = new android.widget.GridView(this);
         grid.setNumColumns(4);
@@ -710,35 +711,25 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void showFullscreenImage(String imageUrl) {
-        // Descargar la imagen en segundo plano
-        com.android.volley.toolbox.ImageRequest imgRequest = new com.android.volley.toolbox.ImageRequest(
-                imageUrl,
-                response -> {
-                    // Mostrar diálogo fullscreen con la imagen descargada
-                    ImageViewerDialogFragment dialog = ImageViewerDialogFragment.newInstance(response);
-                    dialog.show(getSupportFragmentManager(), "image_viewer");
-                },
-                0, 0,
-                android.graphics.Bitmap.Config.RGB_565,
-                error -> {
-                    Toast.makeText(ChatActivity.this, "Could not load image", Toast.LENGTH_SHORT).show();
-                    Log.e(TAG, "Image load error: " + error.getMessage());
-                }
-        );
-        imgRequest.setTag(TAG);
-        mQueue.add(imgRequest);
+        // El diálogo descarga la imagen él mismo, escalada al tamaño de pantalla
+        // (evita OOM en el Q20 y no pasa un Bitmap grande por el Bundle del fragment).
+        ImageViewerDialogFragment dialog = ImageViewerDialogFragment.newInstance(imageUrl);
+        dialog.show(getSupportFragmentManager(), "image_viewer");
     }
 
     /** Picker de emojis: rejilla de emojis comunes; al tocar uno se inserta en el
      *  campo de texto y se envía como texto normal (WhatsApp los trata como texto). */
     private void showEmojiPicker() {
         // Set curado para el runtime viejo de BB10 (≈Android 4.3): solo emoji del
-        // bloque clásico (Unicode 6.0/6.1) que la fuente del sistema sí dibuja, y
+        // bloque clásico (Unicode 6.0) que la fuente del sistema sí dibuja, y
         // SIN el selector de variación U+FE0F (que en Android viejo provoca "tofu"
         // en símbolos como ❤ ✌ ✈ ☀ ⏰ ⭐ ✅ ❌; con el codepoint base sí se ven).
+        // OJO: se omiten los emoji de Unicode 6.1 (😀 U+1F600 y 😴 U+1F634), porque
+        // la fuente de BB10 (≈Android 4.3, base Unicode 6.0) NO los trae y salían
+        // invisibles/tofu. Aquí todos son ≤ 6.0, que la fuente sí dibuja.
         final String[] emojis = {
-                "😀","😁","😂","😃","😄","😅","😆","😉","😊","😋","😍","😘",
-                "😜","😝","😎","😏","😌","😔","😴","😪","😢","😭","😡","😱",
+                "😁","😂","😃","😄","😅","😆","😉","😊","😋","😍","😘","😚",
+                "😜","😝","😎","😏","😌","😔","😪","😷","😢","😭","😡","😱",
                 "👍","👎","👌","✌","☝","👏","🙌","🙏","💪","👋","✊","✋",
                 "❤","💛","💚","💙","💜","💔","💕","💖","💗","💘","💝","💋",
                 "✨","⭐","🔥","⚡","☀","🌙","☕","🍺","🍷","🍕","🍔","🍫",
