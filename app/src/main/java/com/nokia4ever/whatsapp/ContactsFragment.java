@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import androidx.fragment.app.Fragment;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SearchView;
@@ -52,6 +53,13 @@ public class ContactsFragment extends Fragment {
 
     private SharedPreferences sharedPreferences;
 
+    // Handler/runnable y cola únicos, con limpieza en el ciclo de vida.
+    // Antes el Handler nunca se cancelaba y los callbacks usaban getContext(),
+    // que es null tras separar el fragment → NullPointerException (cierres aleatorios).
+    private final Handler contactsHandler = new Handler(Looper.getMainLooper());
+    private Runnable contactsRunnable;
+    private RequestQueue requestQueue;
+
 
     public ContactsFragment() {
         // Required empty public constructor
@@ -73,10 +81,9 @@ public class ContactsFragment extends Fragment {
 
         mGroupFragmentView = inflater.inflate(R.layout.fragment_contacts, container, false);
 
+        requestQueue = Volley.newRequestQueue(getContext().getApplicationContext());
+
         initializeFields();
-
-        timer();
-
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
@@ -86,8 +93,7 @@ public class ContactsFragment extends Fragment {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.getFilter().filter(newText);
-
+                if (adapter != null) adapter.getFilter().filter(newText);
                 return false;
             }
         });
@@ -100,18 +106,35 @@ public class ContactsFragment extends Fragment {
         super.onStart();
     }
 
-
-
-    private void timer(){
-        final Handler handler = new Handler();
-        handler.post(new Runnable() {
+    @Override
+    public void onResume() {
+        super.onResume();
+        isTimerEnabled = true;
+        contactsRunnable = new Runnable() {
             @Override
             public void run() {
-                retrieveAndDisplayContacts();
-                if(isTimerEnabled)
-                    handler.postDelayed(this, seconds * 1000);
+                if (isTimerEnabled && isAdded()) {
+                    retrieveAndDisplayContacts();
+                    contactsHandler.postDelayed(this, seconds * 1000);
+                }
             }
-        });
+        };
+        contactsHandler.post(contactsRunnable);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        isTimerEnabled = false;
+        contactsHandler.removeCallbacksAndMessages(null);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        isTimerEnabled = false;
+        contactsHandler.removeCallbacksAndMessages(null);
+        try { if (progressDialog != null && progressDialog.isShowing()) progressDialog.dismiss(); } catch (Exception ignored) {}
     }
 
     private void initializeFields() {
@@ -128,14 +151,12 @@ public class ContactsFragment extends Fragment {
 
     private void retrieveAndDisplayContacts() {
         try {
+            if (!isAdded() || getContext() == null || requestQueue == null) return;
 
             String mobile = whatsAppUser.getUser();
-
-            //progressDialog.show();
             String url = serverUrl + "/api/contacts/" + mobile;
-            Log.d(TAG, "Caling retrieveAndDisplayContacts with Url: " + url);
+            Log.d(TAG, "Calling retrieveAndDisplayContacts with Url: " + url);
 
-            RequestQueue requestQueue = Volley.newRequestQueue(getContext());
             final Gson gson = new Gson();
 
             JsonObjectRequest request = new JsonObjectRequest(
@@ -145,40 +166,28 @@ public class ContactsFragment extends Fragment {
                     new Response.Listener<JSONObject>() {
                         @Override
                         public void onResponse(JSONObject response) {
-                            progressDialog.dismiss();
-
-                            Log.i("Response", response.toString());
-
+                            // El fragment puede haberse separado mientras llegaba la respuesta.
+                            if (!isAdded() || getContext() == null) return;
                             try {
                                 contactsResponse = gson.fromJson(response.toString(), ContactsResponse.class);
-                                //Toast.makeText(getContext(), chatsResponse.getChats().get(0).getMessage(), Toast.LENGTH_SHORT).show();
+                                if (contactsResponse == null || contactsResponse.getContacts() == null) return;
 
                                 contactsList = contactsResponse.getContacts();
-                                adapter =
-                                        new ContactsAdapter(getContext(), contactsList, whatsAppUser, serverUrl);
-
+                                adapter = new ContactsAdapter(getContext(), contactsList, whatsAppUser, serverUrl);
                                 mListView.setAdapter(adapter);
-
                             } catch (Exception ex) {
                                 Log.e(TAG, ex.toString(), ex);
-                                Toast.makeText(getContext(), ex.toString(), Toast.LENGTH_LONG).show();
                             }
-
                         }
                     },
                     new Response.ErrorListener() {
                         @Override
                         public void onErrorResponse(VolleyError error) {
-                            progressDialog.dismiss();
-
+                            if (!isAdded() || getContext() == null) return;
                             String errorMsg = error.getMessage();
-
                             if (errorMsg == null) {
                                 Toast.makeText(getContext(), "Unable to connect to server", Toast.LENGTH_LONG).show();
-                            }
-
-                            // if HTTP status code is 401
-                            else if (errorMsg.equals("java.io.IOException: No authentication challenges found")) {
+                            } else if (errorMsg.equals("java.io.IOException: No authentication challenges found")) {
                                 Toast.makeText(getContext(), "No User Session found, please login from website", Toast.LENGTH_LONG).show();
                             } else {
                                 Toast.makeText(getContext(), "Unable to fetch contacts, please check server URL", Toast.LENGTH_LONG).show();
@@ -188,7 +197,7 @@ public class ContactsFragment extends Fragment {
             );
             requestQueue.add(request);
         } catch (Exception ex){
-            Log.e(TAG, ex.getMessage(), ex);
+            Log.e(TAG, ex.getMessage() != null ? ex.getMessage() : ex.toString(), ex);
         }
 
     }

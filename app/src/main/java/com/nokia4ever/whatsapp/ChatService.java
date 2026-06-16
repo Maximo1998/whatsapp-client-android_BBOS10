@@ -1,13 +1,16 @@
 package com.nokia4ever.whatsapp;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ServiceInfo;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -23,13 +26,11 @@ import com.google.gson.Gson;
 
 import org.json.JSONObject;
 
-
-/**
- * Created by hunte on 7/30/2025.
- */
-
 public class ChatService extends Service {
     private static final String TAG = "ChatService";
+    private static final String CHANNEL_ID = "novel_messenger_service";
+    private static final int FOREGROUND_NOTIF_ID = 1;
+    private static final int MSG_NOTIF_ID = 100;
 
     private String serverUrl;
     private WhatsAppUser whatsAppUser;
@@ -37,219 +38,171 @@ public class ChatService extends Service {
     private String lastChatId = "";
     private Contact selectedContact;
     private SharedPreferences sharedPreferences;
-    private boolean appInBackground;
-
-    private boolean mIsChatHandlerOn;
-
+    private volatile boolean mIsChatHandlerOn;
+    private RequestQueue mQueue;
 
     class MyServiceBinder extends Binder {
-        public ChatService getService(){
-            return ChatService.this;
-        }
+        public ChatService getService() { return ChatService.this; }
     }
-
-    private IBinder mBinder = new MyServiceBinder();
+    private final IBinder mBinder = new MyServiceBinder();
 
     @Nullable
     @Override
-    public IBinder onBind(Intent intent) {
-        Log.i(TAG, "In OnBind");
-
-        return mBinder;
-    }
+    public IBinder onBind(Intent intent) { return mBinder; }
 
     @Override
-    public void onRebind(Intent intent) {
-        super.onRebind(intent);
-        Log.i(TAG, "In OnReBind");
-    }
-
+    public void onRebind(Intent intent) { super.onRebind(intent); }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        stopChatHandler();
-        Log.i(TAG, "Service Destroyed");
-
+        mIsChatHandlerOn = false;
+        Log.i(TAG, "Service destroyed");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(TAG, "In onStartCommand, thread id: " + Thread.currentThread().getId());
+        Log.i(TAG, "onStartCommand");
 
         sharedPreferences = getSharedPreferences("UserPreferences", MODE_PRIVATE);
-
-
-        lastChatId = sharedPreferences.getString("last_chat_id","");
-
-        serverUrl = sharedPreferences.getString("server_url","");
-
+        lastChatId   = sharedPreferences.getString("last_chat_id", "");
+        serverUrl    = sharedPreferences.getString("server_url", "");
         whatsAppUser = new WhatsAppUser(
-                sharedPreferences.getString("pushname",""),
-                sharedPreferences.getString("user",""),
-                sharedPreferences.getString("platform","")
-        );
-
+                sharedPreferences.getString("pushname", ""),
+                sharedPreferences.getString("user", ""),
+                sharedPreferences.getString("platform", ""));
         selectedContact = new Contact(
-                sharedPreferences.getString("contact_id",""),
-                sharedPreferences.getString("contact_name","")
-        );
+                sharedPreferences.getString("contact_id", ""),
+                sharedPreferences.getString("contact_name", ""));
 
-//        serverUrl = intent.getStringExtra("ServerUrl");
-//        whatsAppUser = (WhatsAppUser) intent.getSerializableExtra("WhatsAppUser");
+        mQueue = Volley.newRequestQueue(getApplicationContext());
+        createNotificationChannel();
+        Notification foregroundNotif = buildForegroundNotification();
+        // API 29+ requiere pasar el tipo; API < 29 usa la firma original
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(FOREGROUND_NOTIF_ID, foregroundNotif,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(FOREGROUND_NOTIF_ID, foregroundNotif);
+        }
 
         mIsChatHandlerOn = true;
         new Thread(new Runnable() {
             @Override
-            public void run() {
-                startChatHandler();
-            }
+            public void run() { startChatHandler(); }
         }).start();
 
-        return START_STICKY;
+        return START_STICKY; // sistema lo reinicia si lo mata
     }
 
-    private void startChatHandler(){
-        while(mIsChatHandlerOn){
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    getString(R.string.notification_channel_name),
+                    NotificationManager.IMPORTANCE_LOW);
+            channel.setDescription("Novel Messenger background service");
+            getSystemService(NotificationManager.class).createNotificationChannel(channel);
+        }
+    }
+
+    private Notification buildForegroundNotification() {
+        Intent openIntent = new Intent(this, MainActivity.class);
+        openIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pi = PendingIntent.getActivity(this, 0, openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText(getString(R.string.notification_service_text))
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentIntent(pi)
+                .setOngoing(true)
+                .build();
+    }
+
+    private void startChatHandler() {
+        while (mIsChatHandlerOn) {
             try {
-                if(mIsChatHandlerOn){
-                    try {
-                        retrieveChats();
-                    } catch(Exception ex){
-                        Log.e(TAG, ex.getMessage());
-                    }
-
-                    Log.i(TAG, "Thread id: " + Thread.currentThread().getId());
-
-                }
+                if (mIsChatHandlerOn) retrieveChats();
                 Thread.sleep(5000);
-
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
+            } catch (Exception ex) {
+                Log.e(TAG, "Handler error: " + ex.getMessage());
             }
         }
     }
 
-    private void stopChatHandler() {
-        mIsChatHandlerOn = false;
-    }
-
     @Override
-    public boolean onUnbind(Intent intent) {
-        Log.i(TAG, "In OnUnbind");
-        return super.onUnbind(intent);
-    }
+    public boolean onUnbind(Intent intent) { return super.onUnbind(intent); }
 
-    public ChatsResponse getChats(){
-        return chatsResponse;
-    }
-
-    public void setSelectedContact(Contact contect){
-        selectedContact=contect;
-    }
+    public ChatsResponse getChats() { return chatsResponse; }
+    public void setSelectedContact(Contact c) { selectedContact = c; }
 
     private void retrieveChats() {
         try {
-
-            String mobile = whatsAppUser.getUser();
-
-            //progressDialog.show();
-            String url = serverUrl + "/api/chats/" + mobile + "@c.us";
-            Log.d(TAG, "Calling retrieveAndDisplayChats with Url: " + url);
-
-            RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+            String url = serverUrl + "/api/chats/" + whatsAppUser.getUser() + "@c.us";
+            RequestQueue queue = mQueue;
             final Gson gson = new Gson();
 
-            JsonObjectRequest request = new JsonObjectRequest(
-                    Request.Method.GET,
-                    url,
-                    null,
+            queue.add(new JsonObjectRequest(Request.Method.GET, url, null,
                     new Response.Listener<JSONObject>() {
                         @Override
                         public void onResponse(JSONObject response) {
-                            //progressDialog.dismiss();
-
-                            Log.i(TAG, "Response: " + response.toString());
-
                             try {
                                 chatsResponse = gson.fromJson(response.toString(), ChatsResponse.class);
-                                //Toast.makeText(getContext(), chatsResponse.getChats().get(0).getMessage(), Toast.LENGTH_SHORT).show();
-
-                                if(chatsResponse.getChats().size()>0){
+                                if (chatsResponse.getChats().size() > 0) {
                                     Message chat = chatsResponse.getChats().get(0);
-                                    if(!lastChatId.equals(chat.getId())){
+                                    if (!lastChatId.equals(chat.getId())) {
+                                        // El servidor marca last_from_me=1 cuando el último mensaje
+                                        // lo envié yo (desde este u otro dispositivo). No notificar
+                                        // esos; solo los recibidos de contactos.
+                                        boolean isFromMe = chat.getLastFromMe() == 1;
 
-//                                        if(!lastChatId.equals("") && !selectedContact.getId().equals(chat.getSender())){
-//                                            showNotification(chat.getSenderName(), chat.getMessage());
-//                                        }
-
-                                        appInBackground = sharedPreferences.getBoolean("app_in_background", false);
-
-                                        if(!lastChatId.equals("") && appInBackground){
-                                            showNotification(chat.getSenderName(), chat.getMessage());
+                                        boolean appInBackground = sharedPreferences.getBoolean("app_in_background", false);
+                                        if (!lastChatId.isEmpty() && appInBackground && !isFromMe) {
+                                            showMessageNotification(chat.getSenderName(), chat.getMessage());
                                         }
                                         lastChatId = chat.getId();
-
-                                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                                        editor.putString("last_chat_id", lastChatId);
-                                        editor.apply();
+                                        sharedPreferences.edit()
+                                                .putString("last_chat_id", lastChatId)
+                                                .apply();
                                     }
                                 }
-
                             } catch (Exception ex) {
-                                Log.e(TAG, ex.toString(), ex);
-                                //Toast.makeText(getApplicationContext(), ex.toString(), Toast.LENGTH_LONG).show();
+                                Log.e(TAG, ex.toString());
                             }
-
                         }
                     },
                     new Response.ErrorListener() {
                         @Override
                         public void onErrorResponse(VolleyError error) {
-                            //progressDialog.dismiss();
-
-                            String errorMsg = error.getMessage();
-
-                            if (errorMsg == null) {
-                                //Toast.makeText(getApplicationContext(), "Unable to connect to server", Toast.LENGTH_LONG).show();
-                                Log.e(TAG, "Unable to connect to server");
-                            }
-
-                            // if HTTP status code is 401
-                            else if (errorMsg.equals("java.io.IOException: No authentication challenges found")) {
-                                //Toast.makeText(getApplicationContext(), "No User Session found, please login from website", Toast.LENGTH_LONG).show();
-                                Log.e(TAG, "No User Session found, please login from website");
-                            } else {
-                                //Toast.makeText(getApplicationContext(), "Unable to fetch chats, please check server URL", Toast.LENGTH_LONG).show();
-                                Log.e(TAG, "Unable to fetch chats, please check server URL");
-                            }
+                            Log.e(TAG, "retrieveChats error: " + error.getMessage());
                         }
                     }
-            );
-            requestQueue.add(request);
-        } catch (Exception ex){
+            ));
+        } catch (Exception ex) {
             Log.e(TAG, ex.getMessage(), ex);
         }
+    }
 
-    } // retrieveAndDisplayChats
+    private void showMessageNotification(String senderName, String message) {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pi = PendingIntent.getActivity(this, MSG_NOTIF_ID, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-    private void showNotification(String senderName, String message){
-
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        Intent repeatingIntent = new Intent(this, MainActivity.class);
-        repeatingIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,100,repeatingIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-                .setContentIntent(pendingIntent)
-                .setSmallIcon(android.R.drawable.arrow_up_float)
+        Notification notif = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(senderName)
                 .setContentText(message)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentIntent(pi)
                 .setAutoCancel(true)
-                .setDefaults(Notification.DEFAULT_ALL);
+                .setDefaults(Notification.DEFAULT_ALL)
+                .build();
 
-
-        notificationManager.notify(100, builder.build());
+        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE))
+                .notify(MSG_NOTIF_ID, notif);
     }
 }

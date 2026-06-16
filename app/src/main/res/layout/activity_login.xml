@@ -97,11 +97,10 @@
                 android:layout_marginTop="15dp"
                 android:layout_marginLeft="15dp"
                 android:layout_marginRight="23dp"
-                android:text="Programmed by Novel Professor"
-                android:textAlignment="textEnd"
-                android:textSize="17sp"
-                android:textStyle="bold"
-                android:textColor="@color/colorPrimaryDark"
+                android:text="@string/login_footer"
+                android:textAlignment="center"
+                android:textSize="11sp"
+                android:textColor="@android:color/darker_gray"
                 />
 
         </RelativeLayout>

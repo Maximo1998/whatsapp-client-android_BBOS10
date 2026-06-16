@@ -22,7 +22,9 @@ import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.android.volley.NetworkResponse;
@@ -50,10 +52,12 @@ public class RecordAudioActivity extends AppCompatActivity {
     private static final int REQUEST_AUDIO_PERMISSION_CODE=101;
     MediaRecorder mediaRecorder;
     MediaPlayer mediaPlayer;
-    ImageView ibRecord;
-    ImageView ibPlay;
-    ImageView ibUpload;
+    ImageButton ibRecord;
+    ImageButton ibPlay;
+    ImageButton ibCancel;
+    Button ibUpload;
     TextView tvTime;
+    TextView tvStatus;
     boolean isRecording = false;
     boolean isPlaying = false;
     int seconds = 0;
@@ -83,11 +87,23 @@ public class RecordAudioActivity extends AppCompatActivity {
 
         ibRecord = findViewById(R.id.ib_record);
         ibPlay = findViewById(R.id.ib_play);
+        ibCancel = findViewById(R.id.ib_cancel);
         ibUpload = findViewById(R.id.ib_upload);
         tvTime = findViewById(R.id.tv_time);
+        tvStatus = findViewById(R.id.tv_status);
         audioRecordView = (AudioRecordView) findViewById(R.id.audioRecordView);
 
         mediaPlayer = new MediaPlayer();
+
+        // Verify all buttons are found
+        if (ibUpload == null) Log.e(TAG, "ERROR: ib_upload button is NULL!");
+        else Log.d(TAG, "ib_upload button found");
+
+        // Play disabled until a recording exists. Send button is ALWAYS visible
+        // and enabled — the click handler validates that a recording exists.
+        // (Toggling visibility proved unreliable, so we keep it simple.)
+        ibPlay.setEnabled(false);
+        tvStatus.setText("Press record to start");
 
         ibRecord.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -208,8 +224,12 @@ public class RecordAudioActivity extends AppCompatActivity {
                                             handler2.removeCallbacksAndMessages(null);
                                             ibRecord.setImageDrawable(ContextCompat.getDrawable(RecordAudioActivity.this,
                                                     R.drawable.ic_mic_none_black_24dp));
+                                            // Enable play after recording stops (send is always enabled)
+                                            ibPlay.setEnabled(true);
+                                            tvStatus.setText("Recording complete - play or send");
                                         } catch (Exception e){
                                             Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
+                                            Log.e(TAG, "Error enabling buttons: " + e.getMessage());
                                         }
                                     }
                                 });
@@ -227,6 +247,11 @@ public class RecordAudioActivity extends AppCompatActivity {
         ibPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                // Don't allow play while recording
+                if (isRecording) {
+                    Toast.makeText(RecordAudioActivity.this, "Stop recording first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 if (!isPlaying) {
                     if (path != null) {
                         try {
@@ -265,9 +290,38 @@ public class RecordAudioActivity extends AppCompatActivity {
 
         }); // ibPlay button
 
+        ibCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (isRecording) {
+                    mediaRecorder.stop();
+                    mediaRecorder.release();
+                    mediaRecorder = null;
+                    isRecording = false;
+                    handler.removeCallbacksAndMessages(null);
+                    seconds = 0;
+                    dummySeconds = 0;
+                    tvTime.setText("00:00");
+                    tvStatus.setText("Recording cancelled");
+                } else if (path != null) {
+                    finish();
+                }
+            }
+        }); // ibCancel button
+
         ibUpload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                // Validate there is a recording to send
+                if (isRecording) {
+                    Toast.makeText(RecordAudioActivity.this, "Stop recording first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (path == null || getRecordingFilePath() == null || !getRecordingFilePath().exists()) {
+                    Toast.makeText(RecordAudioActivity.this, "Record an audio first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 RequestQueue requestQueue = Volley.newRequestQueue(RecordAudioActivity.this);
                 Map<String, String> headers = new HashMap<String, String>();
                 String url = serverUrl + "/api/upload";

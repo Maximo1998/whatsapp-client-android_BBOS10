@@ -19,17 +19,58 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/chat_toolbar"
-        android:layout_above="@+id/chat_linear_layout"
+        android:layout_above="@+id/chat_bottom_container"
         android:layout_marginBottom="6dp"
 
         />
+
+    <LinearLayout
+        android:id="@+id/chat_bottom_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical">
+
+        <!-- Barra de "respondiendo a…" (visible solo al citar un mensaje) -->
+        <LinearLayout
+            android:id="@+id/reply_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#E8E8E8"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/reply_preview_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:textColor="@android:color/black"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/reply_cancel_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="✕"
+                android:textColor="@android:color/black"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
     <RelativeLayout
         android:id="@+id/chat_linear_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
-        android:layout_alignParentBottom="true"
         android:background="@android:color/background_light"
         android:orientation="horizontal"
         >
@@ -52,6 +93,9 @@
             android:hint="type message here..."
             android:padding="15dp"
             android:maxLines="5"
+            android:textColor="@android:color/black"
+            android:textColorHint="#888888"
+            android:textCursorDrawable="@null"
             android:layout_toEndOf="@+id/send_files_btn"
             android:layout_toStartOf="@+id/send_message_btn"
             />
@@ -67,5 +111,7 @@
             />
 
     </RelativeLayout>
+
+    </LinearLayout>
 
 </RelativeLayout>

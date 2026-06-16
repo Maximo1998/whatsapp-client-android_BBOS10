@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fondo de la vista previa de cita (reply) dentro de una burbuja. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#1A000000" />
+    <corners android:radius="8dp" />
+    <stroke android:width="3dp" android:color="#4D006257" />
+</shape>

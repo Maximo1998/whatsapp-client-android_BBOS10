@@ -13,6 +13,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.IBinder;
 import androidx.fragment.app.Fragment;
 import androidx.core.app.NotificationCompat;
@@ -40,16 +41,19 @@ public class ChatsFragment extends Fragment {
     private ChatsListAdapter adapter;
     private ChatsResponse chatsResponse;
     private AlertDialog progressDialog;
-    private int seconds = 5;
-    private Boolean isTimerEnabled=true;
+    private static final int POLL_INTERVAL_MS = 5000;
+    private Boolean isTimerEnabled = false;
     private String serverUrl;
     private WhatsAppUser whatsAppUser;
     private String lastChatId = "";
+    private String lastSignature = ""; // detecta cambios en cualquier chat (mensaje o no-leídos)
     private Contact selectedContact;
     private SharedPreferences sharedPreferences;
 
     private ChatService chatService;
     private boolean isServiceBound;
+    private final Handler timerHandler = new Handler(Looper.getMainLooper());
+    private Runnable timerRunnable;
     private ServiceConnection serviceConnection;
 
     private Intent serviceIntent;
@@ -84,7 +88,6 @@ public class ChatsFragment extends Fragment {
 //        serviceIntent.putExtra("WhatsAppUser", whatsAppUser);
         getContext().startService(serviceIntent);
         bindService();
-        timer();
 
         /*
         Intent intent = new Intent(getContext(), MyBroadcastReceiver.class);
@@ -130,28 +133,38 @@ public class ChatsFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        selectedContact = new Contact("","");
+        selectedContact = new Contact("", "");
     }
 
     @Override
     public void onResume() {
         super.onResume();
         lastChatId = "";
-    }
-
-    private void timer(){
-        final Handler handler = new Handler();
-        handler.post(new Runnable() {
+        isTimerEnabled = true;
+        timerRunnable = new Runnable() {
             @Override
             public void run() {
-                retrieveAndDisplayChats();
-
-                if(isTimerEnabled) {
-                    handler.postDelayed(this, seconds * 1000);
-
+                if (isTimerEnabled && isAdded()) {
+                    retrieveAndDisplayChats();
+                    timerHandler.postDelayed(this, POLL_INTERVAL_MS);
                 }
             }
-        });
+        };
+        timerHandler.post(timerRunnable);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        isTimerEnabled = false;
+        timerHandler.removeCallbacks(timerRunnable);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        timerHandler.removeCallbacksAndMessages(null);
+        if (isServiceBound) unbindService1();
     }
 
     private void initializeFields() {
@@ -239,20 +252,17 @@ public class ChatsFragment extends Fragment {
             if(isServiceBound){
                 chatsResponse = chatService.getChats();
 
-                if(chatsResponse != null && chatsResponse.getChats().size()>0){
-                    Message chat = chatsResponse.getChats().get(0);
-                    if(!lastChatId.equals(chat.getId())){
-
-                        // notification will be shown from the Chat Service class
-//                        if(!lastChatId.equals("") && !selectedContact.getId().equals(chat.getSender())){
-//                            showNotification(chat.getSenderName(), chat.getMessage());
-//                        }
-
-                        lastChatId = chat.getId();
-
-                        adapter =
-                                new ChatsListAdapter(getContext(), R.layout.custom_chats_layout, chatsResponse.getChats());
-
+                if(chatsResponse != null && chatsResponse.getChats().size() > 0 && isAdded()){
+                    // Reconstruir cuando CAMBIE cualquier chat (mensaje nuevo o contador
+                    // de no-leídos). Antes solo se refrescaba si cambiaba el primer chat,
+                    // por eso la bolita de no-leídos no desaparecía al entrar al chat
+                    // (mark-read pone unread=0 pero el primer chat seguía siendo el mismo).
+                    String sig = buildSignature(chatsResponse.getChats());
+                    if (!sig.equals(lastSignature)) {
+                        lastSignature = sig;
+                        lastChatId = chatsResponse.getChats().get(0).getId();
+                        adapter = new ChatsListAdapter(getContext(), R.layout.custom_chats_layout,
+                                chatsResponse.getChats(), serverUrl, whatsAppUser.getUser());
                         mListView.setAdapter(adapter);
                     }
                 }
@@ -267,5 +277,16 @@ public class ChatsFragment extends Fragment {
 
     } // retrieveAndDisplayChats
 
+    /** Firma del estado de la lista: id + no-leídos + último mensaje de cada chat.
+     *  Si cambia, hay que repintar (mensaje nuevo o bolita de no-leídos actualizada). */
+    private String buildSignature(java.util.ArrayList<Message> chats) {
+        StringBuilder sb = new StringBuilder();
+        for (Message c : chats) {
+            sb.append(c.getId()).append(':')
+              .append(c.getUnreadCount()).append(':')
+              .append(c.getMessage()).append('|');
+        }
+        return sb.toString();
+    }
 
 }

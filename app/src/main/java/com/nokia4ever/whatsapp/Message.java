@@ -13,6 +13,13 @@ public class Message implements Serializable {
     private String updatedAt;
     private String createdAt;
     private String chatType;
+    private String mediaFilename;
+    private int unreadCount;
+    private int lastFromMe;
+    private String waId;
+    private String reaction;
+    private String quotedMessage;
+    private String quotedAuthor;
 
 
     public Message() {
@@ -105,9 +112,19 @@ public class Message implements Serializable {
         return chatType;
     }
 
-
-
-
-
+    public String getMediaFilename() { return mediaFilename; }
+    public void setMediaFilename(String f) { this.mediaFilename = f; }
+    public int getUnreadCount() { return unreadCount; }
+    public void setUnreadCount(int count) { this.unreadCount = count; }
+    public int getLastFromMe() { return lastFromMe; }
+    public void setLastFromMe(int v) { this.lastFromMe = v; }
+    public String getWaId() { return waId; }
+    public void setWaId(String waId) { this.waId = waId; }
+    public String getReaction() { return reaction; }
+    public void setReaction(String reaction) { this.reaction = reaction; }
+    public String getQuotedMessage() { return quotedMessage; }
+    public void setQuotedMessage(String q) { this.quotedMessage = q; }
+    public String getQuotedAuthor() { return quotedAuthor; }
+    public void setQuotedAuthor(String a) { this.quotedAuthor = a; }
 }
 

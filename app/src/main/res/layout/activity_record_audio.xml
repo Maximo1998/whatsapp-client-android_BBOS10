@@ -1,72 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Layout pensado para la pantalla cuadrada y baja de la BlackBerry Q20 (720x720).
+     El botón "Send Audio" queda SIEMPRE anclado abajo y visible; el resto del
+     contenido va en un ScrollView con peso, así nunca empuja el botón fuera de
+     pantalla (era la causa de que "no apareciera" el botón de enviar). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
     tools:context=".RecordAudioActivity">
 
-    <com.visualizer.amplitude.AudioRecordView
-        android:id="@+id/audioRecordView"
-        android:layout_width="256dp"
-        android:layout_height="64dp"
-        app:chunkAlignTo="bottom"
-        app:chunkRoundedCorners="true"
-        app:chunkSoftTransition="true"
-        app:chunkColor="@android:color/holo_blue_dark"
-        app:chunkSpace="1dp"
-        app:chunkWidth="2dp"
-        app:chunkMaxHeight="48dp"
-        app:chunkMinHeight="2dp"
-        app:direction="leftToRight"
-        android:layout_centerHorizontal="true"
-        android:layout_above="@+id/tv_time"
-        />
-
-    <TextView
-        android:id="@+id/tv_time"
+    <!-- Contenido desplazable -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="00:00"
-        android:textAlignment="center"
-        android:textSize="70dp"
-        android:textColor="@android:color/black"
-        android:layout_above="@+id/ib_record"
-        />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
 
-    <ImageView
-        android:id="@+id/ib_record"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="40dp"
-        android:src="@drawable/ic_mic_none_black_24dp"
-        android:tint="@android:color/holo_red_dark"
-        />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
 
-    <ImageView
-        android:id="@+id/ib_play"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="75dp"
-        android:layout_marginStart="20dp"
-        android:layout_toEndOf="@+id/ib_record"
-        android:src="@drawable/ic_play_arrow_black_24dp"
-        />
+            <!-- Status Text (instrucciones) -->
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Press record to start"
+                android:textSize="14sp"
+                android:textColor="@android:color/darker_gray"
+                android:gravity="center"
+                android:layout_marginBottom="8dp" />
 
-    <ImageView
+            <!-- Visualizer -->
+            <com.visualizer.amplitude.AudioRecordView
+                android:id="@+id/audioRecordView"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                app:chunkAlignTo="bottom"
+                app:chunkRoundedCorners="true"
+                app:chunkSoftTransition="true"
+                app:chunkColor="@android:color/holo_blue_dark"
+                app:chunkSpace="2dp"
+                app:chunkWidth="3dp"
+                app:chunkMaxHeight="48dp"
+                app:chunkMinHeight="4dp"
+                app:direction="leftToRight"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Timer -->
+            <TextView
+                android:id="@+id/tv_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:gravity="center"
+                android:textSize="36sp"
+                android:textColor="@android:color/black"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Control Buttons (Cancel, Record, Play) -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <ImageButton
+                    android:id="@+id/ib_cancel"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:background="@drawable/rounded_button_cancel"
+                    android:scaleType="centerInside"
+                    android:contentDescription="Cancel"
+                    android:layout_marginEnd="16dp" />
+
+                <ImageButton
+                    android:id="@+id/ib_record"
+                    android:layout_width="84dp"
+                    android:layout_height="84dp"
+                    android:src="@drawable/ic_mic_none_black_24dp"
+                    android:background="@drawable/rounded_button_record"
+                    android:scaleType="centerInside"
+                    android:tint="@android:color/white"
+                    android:contentDescription="Record" />
+
+                <ImageButton
+                    android:id="@+id/ib_play"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_play_arrow_black_24dp"
+                    android:background="@drawable/rounded_button_play"
+                    android:scaleType="centerInside"
+                    android:contentDescription="Play"
+                    android:layout_marginStart="16dp" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Send Button — SIEMPRE visible, anclado abajo. El click valida que haya grabación. -->
+    <Button
         android:id="@+id/ib_upload"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="75dp"
-        android:layout_marginStart="20dp"
-        android:layout_toStartOf="@+id/ib_record"
-        android:src="@drawable/ic_file_upload_black_24dp"
-        />
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="✓ Send Audio"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:background="@android:color/holo_green_dark"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="8dp" />
 
-</RelativeLayout>
+</LinearLayout>

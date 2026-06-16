@@ -7,47 +7,85 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.squareup.picasso.Picasso;
 
-/**
- * Created by hunte on 7/11/2025.
- */
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
+
+import de.hdodenhof.circleimageview.CircleImageView;
+
 public class ChatsListAdapter extends ArrayAdapter<Message> {
     private static final String TAG = "ChatsListAdapter";
     private Context context;
     private int resource;
+    private String serverUrl;
+    private String userNumber; // logged-in user number without @c.us
 
-    public ChatsListAdapter(Context context, int resource, ArrayList<Message> objects) {
+    public ChatsListAdapter(Context context, int resource, ArrayList<Message> objects,
+                            String serverUrl, String userNumber) {
         super(context, resource, objects);
         this.context = context;
         this.resource = resource;
+        this.serverUrl = serverUrl;
+        this.userNumber = userNumber;
+    }
+
+    /** El servidor ya envía la hora en su zona horaria (la del servidor es la
+     *  fuente de verdad porque el reloj/zona del dispositivo es poco fiable).
+     *  Mostramos HH:mm tal cual, sin reconvertir zonas. */
+    private String formatTimestamp(String serverTime) {
+        if (serverTime == null || serverTime.isEmpty()) return "";
+        // Formato esperado: "yyyy-MM-dd HH:mm:ss" → extraer "HH:mm"
+        int sp = serverTime.indexOf(' ');
+        if (sp >= 0 && serverTime.length() >= sp + 6) {
+            return serverTime.substring(sp + 1, sp + 6);
+        }
+        return serverTime;
     }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        String _id = getItem(position).getId();
-        String sender = getItem(position).getSender();
-        String receiver = getItem(position).getReceiver();
-        String message = getItem(position).getMessage();
-        int status = getItem(position).getStatus();
-        String senderName = getItem(position).getSenderName();
-        String createdAt = getItem(position).getCreatedAt();
-        String chatType = getItem(position).getChatType();
-
-
+        Message item = getItem(position);
+        String sender     = item.getSender();
+        String message    = item.getMessage();
+        String senderName = item.getSenderName();
+        String createdAt  = formatTimestamp(item.getCreatedAt());
 
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(resource, parent, false);
-        TextView lblSenderName = (TextView) view.findViewById(R.id.user_profile_name);
-        TextView lblMessage = (TextView) view.findViewById(R.id.user_message);
-        TextView lblDate = (TextView) view.findViewById(R.id.message_date);
+
+        TextView lblSenderName = view.findViewById(R.id.user_profile_name);
+        TextView lblMessage    = view.findViewById(R.id.user_message);
+        TextView lblDate       = view.findViewById(R.id.message_date);
+        TextView unreadBadge   = view.findViewById(R.id.unread_badge);
+        CircleImageView profilePic = view.findViewById(R.id.users_profile_image);
 
         lblSenderName.setText(senderName);
         lblMessage.setText(message);
         lblDate.setText(createdAt);
 
-        return view;
+        // Show unread badge if there are unread messages
+        int unreadCount = item.getUnreadCount();
+        if (unreadCount > 0) {
+            unreadBadge.setVisibility(android.view.View.VISIBLE);
+            unreadBadge.setText(String.valueOf(unreadCount > 99 ? "99+" : unreadCount));
+        } else {
+            unreadBadge.setVisibility(android.view.View.GONE);
+        }
 
+        // Cargar foto de perfil del contacto
+        if (serverUrl != null && !serverUrl.isEmpty() && sender != null && !sender.isEmpty()) {
+            String picUrl = serverUrl + "/api/profilepic/" + userNumber + "@c.us/" + sender;
+            Picasso.with(context)
+                    .load(picUrl)
+                    .placeholder(R.drawable.profile_image)
+                    .error(R.drawable.profile_image)
+                    .into(profilePic);
+        }
+
+        return view;
     }
 }

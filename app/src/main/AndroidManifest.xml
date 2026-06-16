@@ -3,40 +3,61 @@
     package="com.nokia4ever.whatsapp">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:networkSecurityConfig="@xml/network_security_config"
-        android:name="androidx.multidex.MultiDexApplication"
+        android:name=".MyApplication"
         android:allowBackup="true"
+        android:largeHeap="true"
         android:icon="@mipmap/whatsapp_icon"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/whatsapp_icon"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".PlayAudioActivity" android:exported="false" />
+
+        <activity android:name=".PlayAudioActivity"   android:exported="false" />
         <activity android:name=".RecordAudioActivity" android:exported="false" />
         <activity android:name=".AudioRecordActivity" android:exported="false" />
-        <activity android:name=".MainActivity" android:exported="false" />
-        <activity android:name=".LoginActivity" android:exported="true">
+        <activity android:name=".MainActivity"        android:exported="false" />
+        <activity android:name=".LoginActivity"       android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".RegisterActivity" android:exported="false" />
-        <activity android:name=".SettingsActivity" android:exported="false" />
-        <activity android:name=".ChatActivity" android:exported="false" />
+        <activity android:name=".RegisterActivity"    android:exported="false" />
+        <activity android:name=".SettingsActivity"    android:exported="false" />
+        <activity android:name=".ChatActivity"        android:exported="false" />
         <activity android:name=".ImageUploadActivity" android:exported="false" />
-        <activity android:name=".ImageViewActivity" android:exported="false" />
+        <activity android:name=".ImageViewActivity"   android:exported="false" />
 
-        <service android:name=".ChatService" />
+        <service
+            android:name=".ChatService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
 
-        <receiver android:name=".MyBroadcastReceiver" />
+        <receiver
+            android:name=".MyBroadcastReceiver"
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>
