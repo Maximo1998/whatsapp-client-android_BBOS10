@@ -18,6 +18,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.FileProvider;
 import androidx.viewpager.widget.ViewPager;
 
+import android.widget.Toast;
+
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -81,19 +83,23 @@ public class MainActivity extends AppCompatActivity {
 
     private void checkForUpdate() {
         String serverUrl = sharedPreferences.getString("server_url", "");
-        if (serverUrl.isEmpty()) return;
-
+        if (serverUrl.isEmpty()) {
+            Toast.makeText(this, "DBG: server_url vacío", Toast.LENGTH_LONG).show();
+            return;
+        }
         String url = serverUrl + "/api/version";
+        Toast.makeText(this, "DBG: comprobando " + url, Toast.LENGTH_LONG).show();
         mQueue.add(new JsonObjectRequest(Request.Method.GET, url, null,
                 response -> {
                     String remote = response.optString("version", "");
                     String apkUrl = response.optString("apk_url", "");
-                    if (!remote.isEmpty() && !apkUrl.isEmpty()
-                            && isNewerVersion(remote, BuildConfig.VERSION_NAME)) {
+                    boolean newer = isNewerVersion(remote, BuildConfig.VERSION_NAME);
+                    Toast.makeText(this, "DBG: srv=" + remote + " app=" + BuildConfig.VERSION_NAME + " newer=" + newer, Toast.LENGTH_LONG).show();
+                    if (!remote.isEmpty() && !apkUrl.isEmpty() && newer) {
                         showUpdateDialog(remote, apkUrl);
                     }
                 },
-                error -> { }
+                error -> Toast.makeText(this, "DBG error: " + error.getClass().getSimpleName() + " " + error.getMessage(), Toast.LENGTH_LONG).show()
         ));
     }
 
