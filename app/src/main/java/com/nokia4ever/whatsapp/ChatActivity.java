@@ -70,10 +70,10 @@ public class ChatActivity extends AppCompatActivity {
     private AlertDialog progressDialog;
     private static final int POLL_INTERVAL_MS = 5000;
     private Boolean isTimerEnabled;
-    private String serverUrl;
-    private RequestQueue mQueue;
     private final Handler timerHandler = new Handler(Looper.getMainLooper());
     private Runnable timerRunnable;
+    private String serverUrl;
+    private RequestQueue mQueue;
     private WhatsAppUser whatsAppUser;
     private String lastMessageId = "";
     private String lastReactionSignature = "";
@@ -199,10 +199,10 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        lastMessageId = "";
 
         // Al abrir un chat, borrar la notificación de la barra de estado (id 100,
-        // compartido por ChatService.MSG_NOTIF_ID). Antes solo se quitaba al
-        // responder; ahora desaparece simplemente con entrar al chat.
+        // compartido por ChatService.MSG_NOTIF_ID).
         try {
             android.app.NotificationManager nm =
                     (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);

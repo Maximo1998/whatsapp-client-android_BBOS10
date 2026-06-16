@@ -4,8 +4,8 @@ on:
   push:
     branches: [ improved, master ]
   pull_request:
-    branches: [ improved ]
-  workflow_dispatch:        # permite lanzarlo manualmente desde la UI de GitHub
+    branches: [ improved, master ]
+  workflow_dispatch:
 
 jobs:
   build:

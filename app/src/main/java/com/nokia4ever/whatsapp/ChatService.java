@@ -124,8 +124,8 @@ public class ChatService extends Service {
     private void startChatHandler() {
         while (mIsChatHandlerOn) {
             try {
-                Thread.sleep(5000);
                 if (mIsChatHandlerOn) retrieveChats();
+                Thread.sleep(5000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception ex) {

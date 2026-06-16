@@ -139,6 +139,7 @@ public class ChatsFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        lastChatId = "";
         isTimerEnabled = true;
         timerRunnable = new Runnable() {
             @Override
