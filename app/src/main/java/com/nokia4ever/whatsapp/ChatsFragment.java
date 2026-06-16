@@ -133,6 +133,12 @@ public class ChatsFragment extends Fragment {
         selectedContact = new Contact("","");
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        lastChatId = "";
+    }
+
     private void timer(){
         final Handler handler = new Handler();
         handler.post(new Runnable() {

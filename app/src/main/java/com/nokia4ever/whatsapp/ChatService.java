@@ -112,7 +112,6 @@ public class ChatService extends Service {
     private void startChatHandler(){
         while(mIsChatHandlerOn){
             try {
-                Thread.sleep(5000);
                 if(mIsChatHandlerOn){
                     try {
                         retrieveChats();
@@ -123,6 +122,7 @@ public class ChatService extends Service {
                     Log.i(TAG, "Thread id: " + Thread.currentThread().getId());
 
                 }
+                Thread.sleep(5000);
 
             } catch (InterruptedException e) {
                 e.printStackTrace();
