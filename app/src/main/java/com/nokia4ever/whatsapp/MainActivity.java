@@ -182,7 +182,49 @@ public class MainActivity extends AppCompatActivity {
             logout();
             return true;
         }
+        if (item.getItemId() == R.id.action_version) {
+            showVersionDialog();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showVersionDialog() {
+        if (isFinishing()) return;
+        new AlertDialog.Builder(this)
+                .setTitle("Versión")
+                .setMessage("Versión instalada: " + BuildConfig.VERSION_NAME)
+                .setPositiveButton("Buscar actualización", (d, w) -> checkForUpdateManual())
+                .setNegativeButton("Cerrar", null)
+                .show();
+    }
+
+    private void checkForUpdateManual() {
+        String serverUrl = sharedPreferences.getString("server_url", "");
+        if (serverUrl.isEmpty()) return;
+
+        String url = serverUrl + "/api/version";
+        mQueue.add(new JsonObjectRequest(Request.Method.GET, url, null,
+                response -> {
+                    String remote = response.optString("version", "");
+                    String apkUrl = response.optString("apk_url", "");
+                    if (!remote.isEmpty() && !apkUrl.isEmpty()
+                            && isNewerVersion(remote, BuildConfig.VERSION_NAME)) {
+                        showUpdateDialog(remote, apkUrl);
+                    } else {
+                        new AlertDialog.Builder(this)
+                                .setTitle("Sin actualizaciones")
+                                .setMessage("Ya tienes la versión más reciente (" + BuildConfig.VERSION_NAME + ").")
+                                .setPositiveButton("OK", null)
+                                .show();
+                    }
+                },
+                error -> new AlertDialog.Builder(this)
+                        .setTitle("Error")
+                        .setMessage("No se pudo contactar con el servidor.")
+                        .setPositiveButton("OK", null)
+                        .show()
+        ));
     }
 
     private void logout() {
