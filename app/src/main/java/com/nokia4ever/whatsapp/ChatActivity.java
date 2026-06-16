@@ -1,5 +1,8 @@
 package com.nokia4ever.whatsapp;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -614,15 +617,27 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    /** Menú al mantener pulsado un mensaje: Responder o Reaccionar. */
+    /** Menú al mantener pulsado un mensaje: Responder, Reaccionar o Copiar. */
     private void showMessageActions(final Message message) {
-        CharSequence[] options = new CharSequence[]{"Reply", "React"};
+        CharSequence[] options = new CharSequence[]{"Reply", "React", "Copy"};
         new AlertDialog.Builder(this)
                 .setItems(options, (dialog, which) -> {
                     if (which == 0)      startReply(message);
                     else if (which == 1) showReactionPicker(message);
+                    else if (which == 2) copyMessageText(message);
                 })
                 .show();
+    }
+
+    private void copyMessageText(Message message) {
+        String text = message.getMessage();
+        if (text == null || text.isEmpty()) {
+            Toast.makeText(this, "Nothing to copy", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        clipboard.setPrimaryClip(ClipData.newPlainText("message", text));
+        Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show();
     }
 
     /** Activa el modo respuesta: muestra la barra de cita sobre el campo de texto. */
