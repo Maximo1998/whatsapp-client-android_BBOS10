@@ -18,6 +18,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.FileProvider;
 import androidx.viewpager.widget.ViewPager;
 
+import android.widget.Toast;
+
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -55,7 +57,11 @@ public class MainActivity extends AppCompatActivity {
 
         mTabLayout = findViewById(R.id.main_tabs);
         mTabLayout.setupWithViewPager(mViewPager);
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
         checkForUpdate();
     }
 
@@ -78,12 +84,15 @@ public class MainActivity extends AppCompatActivity {
                 response -> {
                     String remote = response.optString("version", "");
                     String apkUrl = response.optString("apk_url", "");
-                    if (!remote.isEmpty() && !apkUrl.isEmpty()
-                            && isNewerVersion(remote, BuildConfig.VERSION_NAME)) {
+                    boolean newer = isNewerVersion(remote, BuildConfig.VERSION_NAME);
+                    Toast.makeText(this,
+                            "Versión servidor: " + remote + " | App: " + BuildConfig.VERSION_NAME + " | Actualizar: " + newer,
+                            Toast.LENGTH_LONG).show();
+                    if (!remote.isEmpty() && !apkUrl.isEmpty() && newer) {
                         showUpdateDialog(remote, apkUrl);
                     }
                 },
-                error -> { /* silencioso: no molestar si el servidor no soporta /api/version */ }
+                error -> Toast.makeText(this, "Error versión: " + error.toString(), Toast.LENGTH_LONG).show()
         ));
     }
 
