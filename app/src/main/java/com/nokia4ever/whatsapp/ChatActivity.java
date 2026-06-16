@@ -63,6 +63,8 @@ public class ChatActivity extends AppCompatActivity {
     private AlertDialog progressDialog;
     private int seconds = 5;
     private Boolean isTimerEnabled;
+    private Handler timerHandler;
+    private Runnable timerRunnable;
     private String serverUrl;
     private WhatsAppUser whatsAppUser;
     private String lastMessageId = "";
@@ -196,6 +198,7 @@ public class ChatActivity extends AppCompatActivity {
     protected void onResume() {
         Log.d(TAG, "onResume called");
         super.onResume();
+        lastMessageId = "";
         isTimerEnabled = true;
         timer();
     }
@@ -205,6 +208,8 @@ public class ChatActivity extends AppCompatActivity {
         Log.d(TAG, "onPause called");
         super.onPause();
         isTimerEnabled = false;
+        if(timerHandler != null && timerRunnable != null)
+            timerHandler.removeCallbacks(timerRunnable);
 
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString("contact_id", "");
@@ -305,15 +310,16 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void timer(){
-        final Handler handler = new Handler();
-        handler.post(new Runnable() {
+        timerHandler = new Handler();
+        timerRunnable = new Runnable() {
             @Override
             public void run() {
                 retrieveAndDisplayMessages();
                 if(isTimerEnabled)
-                    handler.postDelayed(this, seconds * 1000);
+                    timerHandler.postDelayed(this, seconds * 1000);
             }
-        });
+        };
+        timerHandler.post(timerRunnable);
     }
 
     private void sendMessage() {
