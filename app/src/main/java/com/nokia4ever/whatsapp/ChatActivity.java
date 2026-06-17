@@ -745,40 +745,64 @@ public class ChatActivity extends AppCompatActivity {
 
         android.app.ProgressDialog dlg = new android.app.ProgressDialog(this);
         dlg.setMessage("Loading video…");
-        dlg.setCancelable(false);
+        dlg.setCancelable(true);
         dlg.show();
 
         new Thread(() -> {
+            java.io.File cacheFile = null;
+            String downloadError = null;
             try {
-                java.io.File cacheFile = new java.io.File(getCacheDir(), "video_cache." + finalExt);
                 java.net.HttpURLConnection conn =
                         (java.net.HttpURLConnection) new java.net.URL(videoUrl).openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(60000);
                 conn.connect();
-                try (java.io.InputStream in = conn.getInputStream();
-                     java.io.FileOutputStream out = new java.io.FileOutputStream(cacheFile)) {
-                    byte[] buf = new byte[8192];
-                    int n;
-                    while ((n = in.read(buf)) >= 0) out.write(buf, 0, n);
-                }
-                runOnUiThread(() -> {
-                    dlg.dismiss();
-                    try {
-                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                        intent.setDataAndType(android.net.Uri.fromFile(cacheFile), mimeType);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        startActivity(intent);
-                    } catch (android.content.ActivityNotFoundException e) {
-                        android.widget.Toast.makeText(this, "No video player found",
-                                android.widget.Toast.LENGTH_SHORT).show();
+                int code = conn.getResponseCode();
+                if (code != java.net.HttpURLConnection.HTTP_OK) {
+                    downloadError = "HTTP " + code;
+                } else {
+                    cacheFile = new java.io.File(getFilesDir(), "video_cache." + finalExt);
+                    try (java.io.InputStream in = conn.getInputStream();
+                         java.io.FileOutputStream out = new java.io.FileOutputStream(cacheFile)) {
+                        byte[] buf = new byte[8192];
+                        int n;
+                        while ((n = in.read(buf)) >= 0) out.write(buf, 0, n);
                     }
-                });
+                }
             } catch (Exception e) {
-                runOnUiThread(() -> {
-                    dlg.dismiss();
-                    android.widget.Toast.makeText(this, "Could not load video",
-                            android.widget.Toast.LENGTH_SHORT).show();
-                });
+                downloadError = e.getClass().getSimpleName() + ": " + e.getMessage();
             }
+
+            final java.io.File finalFile = cacheFile;
+            final String finalError = downloadError;
+            runOnUiThread(() -> {
+                dlg.dismiss();
+                if (finalError != null) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Video error")
+                            .setMessage(finalError + "\n\nTrying to open URL directly…")
+                            .setPositiveButton("Open in browser", (d, w) -> {
+                                startActivity(new Intent(Intent.ACTION_VIEW,
+                                        android.net.Uri.parse(videoUrl)));
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                    return;
+                }
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(android.net.Uri.fromFile(finalFile), mimeType);
+                    startActivity(intent);
+                } catch (android.content.ActivityNotFoundException e) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("No video player")
+                            .setMessage("No app found for " + mimeType + ". Open in browser instead?")
+                            .setPositiveButton("Open", (d, w) -> startActivity(
+                                    new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(videoUrl))))
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                }
+            });
         }).start();
     }
 
