@@ -1,13 +1,8 @@
 package com.nokia4ever.whatsapp;
 
-import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -15,7 +10,6 @@ import android.view.MenuItem;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.FileProvider;
 import androidx.viewpager.widget.ViewPager;
 
 import android.graphics.Color;
@@ -37,9 +31,6 @@ public class MainActivity extends AppCompatActivity {
     private TabsAccessorAdapter mTabsAccessorAdapter;
     private SharedPreferences sharedPreferences;
     private RequestQueue mQueue;
-    private long mDownloadId = -1;
-    private BroadcastReceiver mDownloadReceiver;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,10 +66,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mDownloadReceiver != null) {
-            try { unregisterReceiver(mDownloadReceiver); } catch (Exception ignored) {}
-            mDownloadReceiver = null;
-        }
         if (mQueue != null) mQueue.cancelAll(this);
     }
 
@@ -127,63 +114,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void downloadAndInstall(String apkUrl) {
-        DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        if (dm == null) return;
-
-        // Borrar APK anterior si existe
-        File dest = new File(getExternalFilesDir(null), "update.apk");
-        if (dest.exists()) dest.delete();
-
-        DownloadManager.Request req = new DownloadManager.Request(Uri.parse(apkUrl));
-        req.setTitle(getString(R.string.app_name) + " – update");
-        req.setDescription("Downloading update...");
-        req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-        req.setDestinationInExternalFilesDir(this, null, "update.apk");
-        mDownloadId = dm.enqueue(req);
-        Toast.makeText(this, "Downloading update…", Toast.LENGTH_LONG).show();
-
-        mDownloadReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context ctx, Intent intent) {
-                long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                if (id != mDownloadId) return;
-                try { unregisterReceiver(this); } catch (Exception ignored) {}
-                mDownloadReceiver = null;
-
-                DownloadManager.Query q = new DownloadManager.Query().setFilterById(mDownloadId);
-                android.database.Cursor c = dm.query(q);
-                if (c != null && c.moveToFirst()) {
-                    int status = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
-                    if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                        installApk();
-                    } else {
-                        int reason = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
-                        Toast.makeText(ctx, "Download failed: " + status + "/" + reason, Toast.LENGTH_LONG).show();
-                    }
-                    c.close();
-                }
-            }
-        };
-        registerReceiver(mDownloadReceiver,
-                new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-    }
-
-    private void installApk() {
-        File apk = new File(getExternalFilesDir(null), "update.apk");
-        if (!apk.exists()) return;
-
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        Uri uri;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            uri = FileProvider.getUriForFile(this,
-                    getPackageName() + ".fileprovider", apk);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } else {
-            uri = Uri.fromFile(apk);
-        }
-        intent.setDataAndType(uri, "application/vnd.android.package-archive");
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+        new AlertDialog.Builder(this)
+                .setTitle("Install update")
+                .setMessage("The browser will open to download the update.\n\nIf prompted, uninstall the current version first, then install the new one.")
+                .setPositiveButton("Open", (d, w) -> {
+                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl));
+                    startActivity(browserIntent);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     @Override
