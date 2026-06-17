@@ -93,6 +93,10 @@ public class LoginActivity extends AppCompatActivity {
             Toast.makeText(this, "Please enter the server URL", Toast.LENGTH_SHORT).show();
             return;
         }
+        if (!serverUrl.startsWith("https://")) {
+            Toast.makeText(this, "Server URL must start with https://", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         if (isLoginInProgress) return;
 

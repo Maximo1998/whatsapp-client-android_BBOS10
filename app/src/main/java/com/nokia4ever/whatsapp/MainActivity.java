@@ -114,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void downloadAndInstall(String apkUrl) {
+        if (apkUrl == null || !apkUrl.startsWith("https://")) return;
         new AlertDialog.Builder(this)
                 .setTitle("Install update")
                 .setMessage("The browser will open to download the update.\n\nIf prompted, uninstall the current version first, then install the new one.")
