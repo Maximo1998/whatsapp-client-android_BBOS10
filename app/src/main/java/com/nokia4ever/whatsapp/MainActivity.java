@@ -18,7 +18,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.FileProvider;
 import androidx.viewpager.widget.ViewPager;
 
-import android.widget.Toast;
+import android.graphics.Color;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -83,32 +83,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void checkForUpdate() {
         String serverUrl = sharedPreferences.getString("server_url", "");
-        if (serverUrl.isEmpty()) {
-            Toast.makeText(this, "DBG: server_url vacío", Toast.LENGTH_LONG).show();
-            return;
-        }
+        if (serverUrl.isEmpty()) return;
         String url = serverUrl + "/api/version";
-        Toast.makeText(this, "DBG: comprobando " + url, Toast.LENGTH_LONG).show();
         mQueue.add(new JsonObjectRequest(Request.Method.GET, url, null,
                 response -> {
                     String remote = response.optString("version", "");
                     String apkUrl = response.optString("apk_url", "");
-                    boolean newer = isNewerVersion(remote, BuildConfig.VERSION_NAME);
-                    Toast.makeText(this, "DBG: srv=" + remote + " app=" + BuildConfig.VERSION_NAME + " newer=" + newer, Toast.LENGTH_LONG).show();
-                    if (!remote.isEmpty() && !apkUrl.isEmpty() && newer) {
+                    if (!remote.isEmpty() && !apkUrl.isEmpty()
+                            && isNewerVersion(remote, BuildConfig.VERSION_NAME)) {
                         showUpdateDialog(remote, apkUrl);
                     }
                 },
-                error -> {
-                    String detail = error.getClass().getSimpleName();
-                    if (error.networkResponse != null) {
-                        detail += " HTTP " + error.networkResponse.statusCode;
-                        if (error.networkResponse.data != null) {
-                            detail += " " + new String(error.networkResponse.data);
-                        }
-                    }
-                    Toast.makeText(this, "DBG error: " + detail, Toast.LENGTH_LONG).show();
-                }
+                error -> { }
         ));
     }
 
@@ -129,12 +115,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void showUpdateDialog(String version, String apkUrl) {
         if (isFinishing()) return;
-        new AlertDialog.Builder(this)
-                .setTitle("Nueva versión disponible")
-                .setMessage("Versión " + version + " disponible. ¿Actualizar ahora?")
-                .setPositiveButton("Actualizar", (d, w) -> downloadAndInstall(apkUrl))
-                .setNegativeButton("Ahora no", null)
+        AlertDialog d = new AlertDialog.Builder(this)
+                .setTitle("New version available")
+                .setMessage("Version " + version + " is available. Update now?")
+                .setPositiveButton("Update", (dlg, w) -> downloadAndInstall(apkUrl))
+                .setNegativeButton("Not now", null)
                 .show();
+        d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#25D366"));
+        d.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#9E9E9E"));
     }
 
     private void downloadAndInstall(String apkUrl) {
@@ -146,8 +134,8 @@ public class MainActivity extends AppCompatActivity {
         if (dest.exists()) dest.delete();
 
         DownloadManager.Request req = new DownloadManager.Request(Uri.parse(apkUrl));
-        req.setTitle(getString(R.string.app_name) + " – actualización");
-        req.setDescription("Descargando versión nueva...");
+        req.setTitle(getString(R.string.app_name) + " – update");
+        req.setDescription("Downloading update...");
         req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
         req.setDestinationInExternalFilesDir(this, null, "update.apk");
         mDownloadId = dm.enqueue(req);
@@ -206,12 +194,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void showVersionDialog() {
         if (isFinishing()) return;
-        new AlertDialog.Builder(this)
-                .setTitle("Versión")
-                .setMessage("Versión instalada: " + BuildConfig.VERSION_NAME)
-                .setPositiveButton("Buscar actualización", (d, w) -> checkForUpdateManual())
-                .setNegativeButton("Cerrar", null)
+        AlertDialog d = new AlertDialog.Builder(this)
+                .setTitle("Version")
+                .setMessage("Installed version: " + BuildConfig.VERSION_NAME)
+                .setPositiveButton("Check for update", (dlg, w) -> checkForUpdateManual())
+                .setNegativeButton("Close", null)
                 .show();
+        d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#25D366"));
+        d.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#9E9E9E"));
     }
 
     private void checkForUpdateManual() {
@@ -228,15 +218,15 @@ public class MainActivity extends AppCompatActivity {
                         showUpdateDialog(remote, apkUrl);
                     } else {
                         new AlertDialog.Builder(this)
-                                .setTitle("Sin actualizaciones")
-                                .setMessage("Ya tienes la versión más reciente (" + BuildConfig.VERSION_NAME + ").")
+                                .setTitle("No updates available")
+                                .setMessage("You already have the latest version (" + BuildConfig.VERSION_NAME + ").")
                                 .setPositiveButton("OK", null)
                                 .show();
                     }
                 },
                 error -> new AlertDialog.Builder(this)
                         .setTitle("Error")
-                        .setMessage("No se pudo contactar con el servidor.")
+                        .setMessage("Could not reach the server.")
                         .setPositiveButton("OK", null)
                         .show()
         ));
