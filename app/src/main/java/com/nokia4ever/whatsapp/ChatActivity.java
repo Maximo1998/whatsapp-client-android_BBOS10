@@ -395,6 +395,9 @@ public class ChatActivity extends AppCompatActivity {
         // Listener para abrir imágenes fullscreen
         adapter.setImageClickListener(imageUrl -> showFullscreenImage(imageUrl));
 
+        // Listener para reproducir vídeos con el player nativo
+        adapter.setVideoClickListener(videoUrl -> playVideo(videoUrl));
+
         // Barra de "respondiendo a…": oculta hasta que se elige responder a un mensaje.
         replyBar         = findViewById(R.id.reply_bar);
         replyPreviewText = findViewById(R.id.reply_preview_text);
@@ -730,6 +733,17 @@ public class ChatActivity extends AppCompatActivity {
         // (evita OOM en el Q20 y no pasa un Bitmap grande por el Bundle del fragment).
         ImageViewerDialogFragment dialog = ImageViewerDialogFragment.newInstance(imageUrl);
         dialog.show(getSupportFragmentManager(), "image_viewer");
+    }
+
+    private void playVideo(String videoUrl) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(android.net.Uri.parse(videoUrl), "video/*");
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (android.content.ActivityNotFoundException e) {
+            android.widget.Toast.makeText(this, "No video player found", android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 
     /** Picker de emojis: rejilla de emojis comunes; al tocar uno se inserta en el

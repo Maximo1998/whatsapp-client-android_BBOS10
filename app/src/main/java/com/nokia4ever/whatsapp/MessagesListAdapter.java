@@ -25,13 +25,22 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
     private WhatsAppUser whatsAppUser;
     private String serverUrl;
     private OnImageClickListener imageClickListener;
+    private OnVideoClickListener videoClickListener;
 
     public interface OnImageClickListener {
         void onImageClick(String imageUrl);
     }
 
+    public interface OnVideoClickListener {
+        void onVideoClick(String videoUrl);
+    }
+
     public void setImageClickListener(OnImageClickListener listener) {
         this.imageClickListener = listener;
+    }
+
+    public void setVideoClickListener(OnVideoClickListener listener) {
+        this.videoClickListener = listener;
     }
 
     public MessagesListAdapter(Context context, int resource, ArrayList<Message> objects,
@@ -160,6 +169,20 @@ public class MessagesListAdapter extends ArrayAdapter<Message> {
                 if (imageClickListener != null) {
                     imageClickListener.onImageClick(imageUrl);
                 }
+            });
+        } else if (chatType.equals("video")) {
+            String filename = (mediaFilename != null && !mediaFilename.isEmpty())
+                    ? mediaFilename : _id + ".mp4";
+            final String videoUrl = serverUrl + "/api/mediafile/" + filename;
+
+            ImageView target = isMine ? senderMessageImage : receiverMessageImage;
+            target.setVisibility(View.VISIBLE);
+            target.setBackgroundColor(android.graphics.Color.parseColor("#1A1A1A"));
+            target.setImageResource(android.R.drawable.ic_media_play);
+            target.setScaleType(ImageView.ScaleType.CENTER);
+
+            target.setOnClickListener(v -> {
+                if (videoClickListener != null) videoClickListener.onVideoClick(videoUrl);
             });
         }
 
