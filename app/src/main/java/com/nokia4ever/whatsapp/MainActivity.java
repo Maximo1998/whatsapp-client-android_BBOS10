@@ -99,7 +99,16 @@ public class MainActivity extends AppCompatActivity {
                         showUpdateDialog(remote, apkUrl);
                     }
                 },
-                error -> Toast.makeText(this, "DBG error: " + error.getClass().getSimpleName() + " " + error.getMessage(), Toast.LENGTH_LONG).show()
+                error -> {
+                    String detail = error.getClass().getSimpleName();
+                    if (error.networkResponse != null) {
+                        detail += " HTTP " + error.networkResponse.statusCode;
+                        if (error.networkResponse.data != null) {
+                            detail += " " + new String(error.networkResponse.data);
+                        }
+                    }
+                    Toast.makeText(this, "DBG error: " + detail, Toast.LENGTH_LONG).show();
+                }
         ));
     }
 
