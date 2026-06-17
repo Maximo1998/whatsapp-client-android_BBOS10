@@ -19,6 +19,7 @@ import androidx.core.content.FileProvider;
 import androidx.viewpager.widget.ViewPager;
 
 import android.graphics.Color;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -139,15 +140,27 @@ public class MainActivity extends AppCompatActivity {
         req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
         req.setDestinationInExternalFilesDir(this, null, "update.apk");
         mDownloadId = dm.enqueue(req);
+        Toast.makeText(this, "Downloading update…", Toast.LENGTH_LONG).show();
 
         mDownloadReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context ctx, Intent intent) {
                 long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                if (id == mDownloadId) {
-                    try { unregisterReceiver(this); } catch (Exception ignored) {}
-                    mDownloadReceiver = null;
-                    installApk();
+                if (id != mDownloadId) return;
+                try { unregisterReceiver(this); } catch (Exception ignored) {}
+                mDownloadReceiver = null;
+
+                DownloadManager.Query q = new DownloadManager.Query().setFilterById(mDownloadId);
+                android.database.Cursor c = dm.query(q);
+                if (c != null && c.moveToFirst()) {
+                    int status = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+                    if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                        installApk();
+                    } else {
+                        int reason = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
+                        Toast.makeText(ctx, "Download failed: " + status + "/" + reason, Toast.LENGTH_LONG).show();
+                    }
+                    c.close();
                 }
             }
         };
