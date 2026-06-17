@@ -230,11 +230,12 @@ public class MainActivity extends AppCompatActivity {
                             && isNewerVersion(remote, BuildConfig.VERSION_NAME)) {
                         showUpdateDialog(remote, apkUrl);
                     } else {
-                        new AlertDialog.Builder(this)
+                        AlertDialog noUpd = new AlertDialog.Builder(this)
                                 .setTitle("No updates available")
                                 .setMessage("You already have the latest version (" + BuildConfig.VERSION_NAME + ").")
                                 .setPositiveButton("OK", null)
                                 .show();
+                        noUpd.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#25D366"));
                     }
                 },
                 error -> new AlertDialog.Builder(this)
