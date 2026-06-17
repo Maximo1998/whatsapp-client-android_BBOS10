@@ -736,14 +736,50 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void playVideo(String videoUrl) {
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(android.net.Uri.parse(videoUrl), "video/*");
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        } catch (android.content.ActivityNotFoundException e) {
-            android.widget.Toast.makeText(this, "No video player found", android.widget.Toast.LENGTH_SHORT).show();
-        }
+        String ext = "mp4";
+        int dot = videoUrl.lastIndexOf('.');
+        if (dot >= 0) ext = videoUrl.substring(dot + 1).toLowerCase();
+        final String mimeType = ext.equals("3gp") ? "video/3gpp"
+                : ext.equals("mkv") ? "video/x-matroska" : "video/mp4";
+        final String finalExt = ext;
+
+        android.app.ProgressDialog dlg = new android.app.ProgressDialog(this);
+        dlg.setMessage("Loading video…");
+        dlg.setCancelable(false);
+        dlg.show();
+
+        new Thread(() -> {
+            try {
+                java.io.File cacheFile = new java.io.File(getCacheDir(), "video_cache." + finalExt);
+                java.net.HttpURLConnection conn =
+                        (java.net.HttpURLConnection) new java.net.URL(videoUrl).openConnection();
+                conn.connect();
+                try (java.io.InputStream in = conn.getInputStream();
+                     java.io.FileOutputStream out = new java.io.FileOutputStream(cacheFile)) {
+                    byte[] buf = new byte[8192];
+                    int n;
+                    while ((n = in.read(buf)) >= 0) out.write(buf, 0, n);
+                }
+                runOnUiThread(() -> {
+                    dlg.dismiss();
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setDataAndType(android.net.Uri.fromFile(cacheFile), mimeType);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                    } catch (android.content.ActivityNotFoundException e) {
+                        android.widget.Toast.makeText(this, "No video player found",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    dlg.dismiss();
+                    android.widget.Toast.makeText(this, "Could not load video",
+                            android.widget.Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
     }
 
     /** Picker de emojis: rejilla de emojis comunes; al tocar uno se inserta en el
