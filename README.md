@@ -1,4 +1,6 @@
 # Novel Messenger — BlackBerry Q20 / BB10 WhatsApp client
+[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](LICENSE) [![Platform](https://img.shields.io/badge/Platform-BlackBerry%2010-000000?logo=android&logoColor=white)]() [![Release](https://img.shields.io/github/v/release/Maximo1998/whatsapp-bb10-client)](https://github.com/Maximo1998/whatsapp-bb10-client/releases) [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-%23FFDD00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/maxlakh1m)
+
 
 An Android client (packaged for **BlackBerry 10 / Q20** via the Android runtime)
 that talks to a self-hosted WhatsApp bridge server so a modified BlackBerry Q20 can
