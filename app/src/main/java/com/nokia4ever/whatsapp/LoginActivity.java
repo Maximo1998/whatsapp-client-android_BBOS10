@@ -109,10 +109,43 @@ public class LoginActivity extends AppCompatActivity {
         startClientThenPoll(mobile, serverUrl, false);
     }
 
-    /** Llama a /api/startclient y luego sondea hasta que el cliente WA esté listo. */
+    /**
+     * Primero comprueba si ya hay sesión activa en el servidor (evita destruir
+     * una sesión QR ya autenticada al llamar a startclient innecesariamente).
+     * Si isAuthenticated=true va directo a fetchUserInfo; si no, llama a
+     * /api/startclient y luego sondea.
+     */
     private void startClientThenPoll(final String mobile, final String serverUrl,
                                      final boolean silent) {
         isLoginInProgress = true;
+        String statusUrl = serverUrl + "/login-status/" + mobile;
+        JsonObjectRequest checkReq = new JsonObjectRequest(Request.Method.GET, statusUrl, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        if (response.optBoolean("isAuthenticated", false)) {
+                            // Sesión ya activa — ir directo a fetchUserInfo sin tocar el cliente
+                            fetchUserInfo(mobile, serverUrl);
+                        } else {
+                            // No autenticado — arrancar el cliente y luego sondear
+                            callStartClient(mobile, serverUrl, silent);
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // Si el servidor no responde al check, intentar arrancar igualmente
+                        callStartClient(mobile, serverUrl, silent);
+                    }
+                }
+        );
+        checkReq.setTag(TAG);
+        queue.add(checkReq);
+    }
+
+    private void callStartClient(final String mobile, final String serverUrl,
+                                 final boolean silent) {
         String url = serverUrl + "/api/startclient/" + mobile;
         JsonObjectRequest req = new JsonObjectRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONObject>() {
